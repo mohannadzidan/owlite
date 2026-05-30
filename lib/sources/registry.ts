@@ -1,0 +1,15 @@
+import type { VideoSource } from "@/lib/types";
+import localSource from "./local.source";
+import streamImdbSource from "./streamimdb.source";
+
+const sources: VideoSource[] = [localSource, streamImdbSource].sort(
+  (a, b) => a.priority - b.priority,
+);
+
+export function getSources(): VideoSource[] {
+  return sources;
+}
+
+export function getSourceById(id: string): VideoSource | undefined {
+  return sources.find((s) => s.id === id);
+}
