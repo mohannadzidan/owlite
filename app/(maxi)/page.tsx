@@ -1,12 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { MaximizeIcon, SearchIcon, UserIcon } from "lucide-react";
+import { SearchIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AppSidebar } from "@/components/app-sidebar";
 import type { TmdbMedia } from "@/lib/types";
 
 const TMDB_IMAGE = "https://image.tmdb.org/t/p/w342";
@@ -33,7 +32,10 @@ function PosterCard({ item }: { item: TmdbMedia }) {
       onClick={() => router.push(`/media/${item.media_type}/${item.id}`)}
       onKeyDown={(e) => e.key === "Enter" && router.push(`/media/${item.media_type}/${item.id}`)}
     >
-      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl transition-transform duration-200 group-hover:scale-105 group-focus:scale-105">
+      <div
+        className="relative w-full overflow-hidden rounded-xl transition-transform duration-200 group-hover:scale-105 group-focus:scale-105"
+        style={{ paddingBottom: "150%" }}
+      >
         {posterUrl ? (
           <Image
             src={posterUrl}
@@ -44,7 +46,7 @@ function PosterCard({ item }: { item: TmdbMedia }) {
             loading="lazy"
           />
         ) : (
-          <div className="bg-card text-muted-foreground flex h-full items-center justify-center p-3 text-center text-xs">
+          <div className="absolute inset-0 bg-card text-muted-foreground flex items-center justify-center p-3 text-center text-xs">
             {title}
           </div>
         )}
@@ -59,7 +61,7 @@ function PosterCard({ item }: { item: TmdbMedia }) {
 function PosterCardSkeleton() {
   return (
     <div className="flex w-36 flex-shrink-0 flex-col gap-2">
-      <Skeleton className="aspect-[2/3] w-full rounded-xl" />
+      <Skeleton className="w-full rounded-xl" style={{ paddingBottom: "150%" }} />
       <Skeleton className="mx-auto h-3 w-20 rounded" />
     </div>
   );
@@ -80,7 +82,7 @@ function MediaRow({
         <h2 className="text-xl font-semibold">{title}</h2>
         <button className="text-primary text-sm font-medium hover:underline">See All →</button>
       </div>
-      <div className="flex gap-4 overflow-x-auto pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex gap-4 overflow-x-auto pb-4 flex-wrap">
         {loading
           ? Array.from({ length: 8 }).map((_, i) => <PosterCardSkeleton key={i} />)
           : items.map((item) => <PosterCard key={`${item.media_type}-${item.id}`} item={item} />)}
@@ -137,57 +139,42 @@ export default function HomePage() {
   const isSearching = query.trim().length > 0;
 
   return (
-    <div className="flex h-full">
-      <AppSidebar />
-
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        {/* Header */}
-        <header className="relative flex h-16 flex-shrink-0 items-center justify-center px-8">
-          <div className="w-full max-w-md">
-            <div className="border-input bg-input/60 focus-within:border-primary/60 flex items-center gap-2 rounded-full border px-4 py-2.5 backdrop-blur-sm transition-colors">
-              <SearchIcon className="text-muted-foreground h-4 w-4 flex-shrink-0" />
-              <Input
-                placeholder="Search or paste link"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="border-0 bg-transparent p-0 text-sm shadow-none placeholder:text-muted-foreground focus-visible:ring-0"
-              />
-            </div>
+    <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+      {/* Header */}
+      <header className="relative flex h-16 flex-shrink-0 items-center justify-center px-8">
+        <div className="w-full max-w-md">
+          <div className="border-input bg-input/60 focus-within:border-primary/60 flex items-center gap-2 rounded-full border px-4 py-2.5 backdrop-blur-sm transition-colors">
+            <SearchIcon className="text-muted-foreground h-4 w-4 flex-shrink-0" />
+            <Input
+              placeholder="Search or paste link"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="border-0 bg-transparent p-0 text-sm shadow-none placeholder:text-muted-foreground focus-visible:ring-0"
+            />
           </div>
-          <div className="absolute right-8 flex items-center gap-3">
-            <button className="text-muted-foreground hover:text-foreground transition-colors">
-              <MaximizeIcon className="h-5 w-5" />
-            </button>
-            <button className="text-muted-foreground hover:text-foreground transition-colors">
-              <UserIcon className="h-5 w-5" />
-            </button>
-          </div>
-        </header>
+        </div>
+      </header>
 
-        {/* Content */}
-        <main className="flex-1 overflow-y-auto px-8 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {isSearching ? (
-            <section>
-              <h2 className="mb-4 text-xl font-semibold">Results for &ldquo;{query}&rdquo;</h2>
-              <div className="flex gap-4 overflow-x-auto pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {searchLoading
-                  ? Array.from({ length: 8 }).map((_, i) => <PosterCardSkeleton key={i} />)
-                  : searchResults.map((item) => (
-                      <PosterCard key={`${item.media_type}-${item.id}`} item={item} />
-                    ))}
-              </div>
-              {!searchLoading && searchResults.length === 0 && (
-                <p className="text-muted-foreground py-10 text-center">No results found.</p>
-              )}
-            </section>
-          ) : (
-            <div className="flex flex-col gap-10">
-              <MediaRow title="Popular — Movies" items={movies} loading={discoverLoading} />
-              <MediaRow title="Popular — Series" items={series} loading={discoverLoading} />
-            </div>
-          )}
-        </main>
-      </div>
+      {/* Content */}
+      <main className="flex-1 overflow-y-auto px-8 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {isSearching ? (
+          <section>
+            <MediaRow
+              title={`Results for "${query}"`}
+              items={searchResults}
+              loading={searchLoading}
+            />
+            {!searchLoading && searchResults.length === 0 && (
+              <p className="text-muted-foreground py-10 text-center">No results found.</p>
+            )}
+          </section>
+        ) : (
+          <div className="flex flex-col gap-10">
+            <MediaRow title="Popular — Movies" items={movies} loading={discoverLoading} />
+            <MediaRow title="Popular — Series" items={series} loading={discoverLoading} />
+          </div>
+        )}
+      </main>
     </div>
   );
 }

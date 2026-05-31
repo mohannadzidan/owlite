@@ -1,10 +1,8 @@
 import type { VideoSource } from "@/lib/types";
-import localSource from "./local.source";
+// import localSource from "./local.source";
 import streamImdbSource from "./streamimdb.source";
 
-const sources: VideoSource[] = [localSource, streamImdbSource].sort(
-  (a, b) => a.priority - b.priority,
-);
+const sources: VideoSource[] = [streamImdbSource].sort((a, b) => a.priority - b.priority);
 
 export function getSources(): VideoSource[] {
   return sources;

@@ -32,5 +32,5 @@ export function AspectRatioGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <>{children}</>;
+  return children;
 }

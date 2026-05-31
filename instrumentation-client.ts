@@ -1,3 +1,17 @@
+import "core-js/stable";
+// polyfills.js
+
+if (typeof window !== "undefined" && typeof WeakRef === "undefined") {
+  globalThis.WeakRef = class WeakRef {
+    _target: unknown;
+    constructor(target: unknown) {
+      this._target = target;
+    }
+    deref() {
+      return this._target;
+    }
+  } as unknown as WeakRefConstructor;
+}
 import {
   CLIENT_ERROR_ENDPOINT,
   CLIENT_LOG_ENDPOINT,
@@ -131,28 +145,27 @@ function sendClientError(payload: ClientErrorPayload) {
     if (navigator.sendBeacon(CLIENT_ERROR_ENDPOINT, blob)) return;
   }
 
-  void fetch(CLIENT_ERROR_ENDPOINT, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body,
-    keepalive: true,
-  }).catch(() => {});
+  // void fetch(CLIENT_ERROR_ENDPOINT, {
+  //   method: "POST",
+  //   headers: { "content-type": "application/json" },
+  //   body,
+  //   keepalive: true,
+  // }).catch(() => {});
 }
 
 function sendClientLog(payload: ClientLogPayload) {
   const body = JSON.stringify(payload);
-
   if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
     const blob = new Blob([body], { type: "application/json" });
     if (navigator.sendBeacon(CLIENT_LOG_ENDPOINT, blob)) return;
   }
 
-  void fetch(CLIENT_LOG_ENDPOINT, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body,
-    keepalive: true,
-  }).catch(() => {});
+  // void fetch(CLIENT_LOG_ENDPOINT, {
+  //   method: "POST",
+  //   headers: { "content-type": "application/json" },
+  //   body,
+  //   keepalive: true,
+  // }).catch(() => {});
 }
 
 function serializeError(
@@ -198,11 +211,11 @@ function patchConsoleMethods() {
   if (consoleObject.__owliteConsolePatched__) return;
   consoleObject.__owliteConsolePatched__ = true;
 
-  const methodNames = Object.getOwnPropertyNames(consoleObject).filter(
-    (name): name is ConsoleMethodName => {
+  const methodNames = Object.getOwnPropertyNames(consoleObject)
+    .filter((name): name is ConsoleMethodName => {
       return typeof consoleObject[name as keyof Console] === "function";
-    },
-  );
+    })
+    .filter((a) => a === "error" || a === "warn" || a === "info"); // --- IGNORE ---
 
   for (const methodName of methodNames) {
     const original = consoleObject[methodName];

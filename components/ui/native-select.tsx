@@ -24,7 +24,7 @@ function NativeSelect({ className, size = "default", ...props }: NativeSelectPro
         {...props}
       />
       <ChevronDownIcon
-        className="pointer-events-none absolute top-1/2 right-1.5 size-3.5 -translate-y-1/2 text-muted-foreground select-none group-data-[size=sm]/native-select:size-3 group-data-[size=sm]/native-select:-translate-y-[calc(--spacing(1.25))]"
+        className="pointer-events-none absolute top-1/2 right-1.5 size-3.5 -translate-y-1/2 text-muted-foreground select-none group-data-[size=sm]/native-select:size-3 group-data-[size=sm]/native-select:-translate-y-[0.3125rem]"
         aria-hidden="true"
         data-slot="native-select-icon"
       />

@@ -4,6 +4,7 @@ import type { SubtitleTrack } from "@/lib/types";
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as {
     imdb_id?: string;
+    tmdb_id?: number;
     season?: number;
     episode?: number;
     language?: string;
@@ -14,6 +15,7 @@ export async function POST(request: NextRequest) {
 
   const params = new URLSearchParams();
   if (body.imdb_id) params.set("imdb_id", body.imdb_id.replace("tt", ""));
+  if (body.tmdb_id) params.set("tmdb_id", String(body.tmdb_id));
   if (body.season != null) params.set("season_number", String(body.season));
   if (body.episode != null) params.set("episode_number", String(body.episode));
   if (body.language) params.set("languages", body.language);

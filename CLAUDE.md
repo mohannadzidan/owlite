@@ -1,3 +1,5 @@
+Do not read node_modules when you need to know about some library or its API, use context7 for that or do web search
+
 ## Common Scripts
 
 - pnpm lint
