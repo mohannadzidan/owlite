@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { type NextRequest, NextResponse } from "next/server";
+import { downloads, HttpError } from "@/services/opensubtitles.service";
 
 const CACHE_DIR = path.join(process.cwd(), "cache", "subtitles");
 
@@ -31,36 +32,26 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const apiKey = process.env.OPENSUBTITLES_API_KEY;
-  if (!apiKey) {
+  if (!process.env.OPENSUBTITLES_API_KEY) {
     return NextResponse.json({ error: "not_configured" }, { status: 503 });
   }
 
-  const dlRes = await fetch("https://api.opensubtitles.com/api/v1/download", {
-    method: "POST",
-    headers: {
-      "Api-Key": apiKey,
-      "Content-Type": "application/json",
-      "User-Agent": "owlite v0.0.1",
-    },
-    body: JSON.stringify({ file_id: Number(fileId) }),
-  });
-
-  if (dlRes.status === 429) {
-    return NextResponse.json(
-      {
-        error: "rate_limited",
-        message: "Subtitle download limit reached for today. Try again tomorrow.",
-      },
-      { status: 429 },
-    );
-  }
-
-  if (!dlRes.ok) {
+  let dlData;
+  try {
+    dlData = await downloads.link(Number(fileId));
+  } catch (e) {
+    if (e instanceof HttpError && e.status === 429) {
+      return NextResponse.json(
+        {
+          error: "rate_limited",
+          message: "Subtitle download limit reached for today. Try again tomorrow.",
+        },
+        { status: 429 },
+      );
+    }
     return NextResponse.json({ error: "download_failed" }, { status: 502 });
   }
 
-  const dlData = (await dlRes.json()) as { link?: string; file_name?: string };
   if (!dlData.link) {
     return NextResponse.json({ error: "no_download_link" }, { status: 502 });
   }
