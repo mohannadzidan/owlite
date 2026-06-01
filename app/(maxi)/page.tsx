@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { TmdbMedia } from "@/lib/types";
+import { tmdb } from "@/services/api.service";
 
 const TMDB_IMAGE = "https://image.tmdb.org/t/p/w342";
 
@@ -102,9 +103,9 @@ export default function HomePage() {
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    fetch("/api/tmdb/discover")
-      .then((r) => r.json())
-      .then((d: { results: TmdbMedia[] }) => {
+    tmdb
+      .discover()
+      .then((d) => {
         const results = d.results ?? [];
         setMovies(results.filter((r) => r.media_type === "movie"));
         setSeries(results.filter((r) => r.media_type === "tv"));
@@ -123,9 +124,9 @@ export default function HomePage() {
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     setSearchLoading(true);
-    fetch(`/api/tmdb/search?q=${encodeURIComponent(q)}`, { signal: ctrl.signal })
-      .then((r) => r.json())
-      .then((d: { results: TmdbMedia[] }) => setSearchResults(d.results ?? []))
+    tmdb
+      .search(q, { signal: ctrl.signal })
+      .then((d) => setSearchResults(d.results ?? []))
       .catch((e: unknown) => {
         if (e instanceof Error && e.name !== "AbortError") setSearchResults([]);
       })

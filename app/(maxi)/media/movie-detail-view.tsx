@@ -7,6 +7,7 @@ import { BookmarkIcon, EyeIcon, FilmIcon, PlayIcon, Share2Icon } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { PlayResponse, TmdbCredits, TmdbMovieDetails } from "@/lib/types";
+import { sources as sourcesApi } from "@/services/api.service";
 
 const BACKDROP = "https://image.tmdb.org/t/p/w1280";
 
@@ -85,8 +86,7 @@ export function MovieDetailView({ tmdbId, movieDetails, credits }: Props) {
     setSourcesLoading(true);
     setSources([]);
     try {
-      const res = await fetch(`/api/sources?tmdb_id=${tmdbId}&media_type=movie`);
-      const data = (await res.json()) as { sources: SourceInfo[] };
+      const data = await sourcesApi.list(tmdbId, "movie");
       setSources(data.sources ?? []);
     } catch {
       setSources([]);
@@ -105,23 +105,18 @@ export function MovieDetailView({ tmdbId, movieDetails, credits }: Props) {
   const handlePlay = useCallback(
     async (sourceId: string) => {
       setPlayError(null);
-      const res = await fetch("/api/play", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      let play: PlayResponse;
+      try {
+        play = await sourcesApi.play({
           source_id: sourceId,
           tmdb_id: tmdbId,
           media_type: "movie",
           screenSize: window.screen.height,
-        }),
-      });
-
-      if (!res.ok) {
+        });
+      } catch {
         setPlayError("Source could not resolve this title.");
         return;
       }
-
-      const play = (await res.json()) as PlayResponse;
       const streamUrl = play.type === "hls" ? play.master_manifest_url : play.url;
       const params = new URLSearchParams({
         url: streamUrl,

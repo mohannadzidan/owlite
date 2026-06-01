@@ -22,6 +22,7 @@ import type {
   TmdbSeason,
   TmdbTvDetails,
 } from "@/lib/types";
+import { sources as sourcesApi, tmdb } from "@/services/api.service";
 
 const BACKDROP = "https://image.tmdb.org/t/p/w1280";
 const STILL = "https://image.tmdb.org/t/p/w185";
@@ -242,8 +243,7 @@ export function TvDetailView({
     setSourcesLoading(true);
     setSources([]);
     try {
-      const res = await fetch(`/api/sources?tmdb_id=${tmdbId}&media_type=tv`);
-      const data = (await res.json()) as { sources: SourceInfo[] };
+      const data = await sourcesApi.list(tmdbId, "tv");
       setSources(data.sources ?? []);
     } catch {
       setSources([]);
@@ -257,8 +257,7 @@ export function TvDetailView({
       setEpisodesLoading(true);
       setSelectedEpisode(null);
       try {
-        const res = await fetch(`/api/tmdb/tv/${tmdbId}/seasons?season=${seasonNum}`);
-        const data = (await res.json()) as { episodes: TmdbEpisode[] };
+        const data = await tmdb.tvEpisodes(tmdbId, seasonNum);
         setEpisodes(data.episodes ?? []);
         setCurrentSeason(seasonNum);
       } finally {
@@ -276,29 +275,22 @@ export function TvDetailView({
   const handlePlay = useCallback(
     async (sourceId: string) => {
       setPlayError(null);
-      const body: Record<string, unknown> = {
-        source_id: sourceId,
-        tmdb_id: tmdbId,
-        media_type: "tv",
-        screenSize: window.screen.height,
-      };
-      if (selectedEpisode) {
-        body.season = selectedEpisode.season_number;
-        body.episode = selectedEpisode.episode_number;
-      }
-
-      const res = await fetch("/api/play", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) {
+      let play: PlayResponse;
+      try {
+        play = await sourcesApi.play({
+          source_id: sourceId,
+          tmdb_id: tmdbId,
+          media_type: "tv",
+          screenSize: window.screen.height,
+          ...(selectedEpisode && {
+            season: selectedEpisode.season_number,
+            episode: selectedEpisode.episode_number,
+          }),
+        });
+      } catch {
         setPlayError("Source could not resolve this title.");
         return;
       }
-
-      const play = (await res.json()) as PlayResponse;
       const streamUrl = play.type === "hls" ? play.master_manifest_url : play.url;
       const params = new URLSearchParams({
         url: streamUrl,

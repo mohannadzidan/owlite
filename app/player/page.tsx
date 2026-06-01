@@ -9,7 +9,8 @@ import { usePlayerStore, usePlayerStoreApi } from "./player-store";
 import FullScreenButton from "@/components/fullscreen-button";
 import { buildTitleId, TitleStorage } from "@/lib/player-storage";
 import { useShortcut, useShortcutScope, shortcutsScopes } from "@/lib/shortcuts";
-import type { SubtitleTrack } from "@/lib/types";
+import type { PlayResponse, SubtitleTrack } from "@/lib/types";
+import { sources, tmdb } from "@/services/api.service";
 
 const HIDE_DELAY_MS = 1400;
 
@@ -109,21 +110,20 @@ function PlayerUI({
   const handleNextEpisode = useCallback(async () => {
     if (!nextSeason || !nextEpisode || !tmdbId || !sourceId) return;
 
-    const playRes = await fetch("/api/play", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    let play: PlayResponse;
+    try {
+      play = await sources.play({
         source_id: sourceId,
         tmdb_id: tmdbId,
         media_type: "tv",
         season: nextSeason,
         episode: nextEpisode,
         screenSize: window.screen.height,
-      }),
-    });
-    if (!playRes.ok) return;
-    const play = (await playRes.json()) as { url?: string; master_manifest_url?: string };
-    const streamUrl = play.url ?? play.master_manifest_url ?? "";
+      });
+    } catch {
+      return;
+    }
+    const streamUrl = play.type === "hls" ? play.master_manifest_url : play.url;
     if (!streamUrl) return;
 
     const params = new URLSearchParams({
@@ -136,11 +136,8 @@ function PlayerUI({
     });
 
     // Fetch series info to compute the next-next episode
-    const seriesRes = await fetch(`/api/tmdb/tv/${tmdbId}/seasons`).catch(() => null);
-    if (seriesRes?.ok) {
-      const seriesData = (await seriesRes.json()) as {
-        seasons?: { season_number: number; episode_count: number }[];
-      };
+    const seriesData = await tmdb.tvSeries(tmdbId).catch(() => null);
+    if (seriesData) {
       const realSeasons = (seriesData.seasons ?? []).filter((s) => s.season_number > 0);
       const currentSeasonInfo = realSeasons.find((s) => s.season_number === nextSeason);
       if (currentSeasonInfo) {

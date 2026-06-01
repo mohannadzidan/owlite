@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { PlayResponse, ResolveParams } from "@/lib/types";
+import { sources as sourcesApi } from "@/services/api.service";
 
 interface SourceInfo {
   id: string;
@@ -26,13 +27,9 @@ export function SourceSelectionSheet({ open, resolveParams, onResolved, onCancel
   useEffect(() => {
     if (!open || !resolveParams) return;
     setError(null);
-    const params = new URLSearchParams({
-      tmdb_id: String(resolveParams.tmdb_id),
-      media_type: resolveParams.media_type,
-    });
-    fetch(`/api/sources?${params}`)
-      .then((r) => r.json())
-      .then((d: { sources: SourceInfo[] }) => setSources(d.sources))
+    sourcesApi
+      .list(resolveParams.tmdb_id, resolveParams.media_type)
+      .then((d) => setSources(d.sources))
       .catch(() => setError("Failed to load sources"));
   }, [open, resolveParams]);
 
@@ -41,17 +38,11 @@ export function SourceSelectionSheet({ open, resolveParams, onResolved, onCancel
     setLoading(sourceId);
     setError(null);
     try {
-      const res = await fetch("/api/play", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          source_id: sourceId,
-          ...resolveParams,
-          screenSize: window.screen.height,
-        }),
+      const data = await sourcesApi.play({
+        source_id: sourceId,
+        ...resolveParams,
+        screenSize: window.screen.height,
       });
-      if (!res.ok) throw new Error("Source failed to resolve");
-      const data = (await res.json()) as PlayResponse;
       onResolved(data);
     } catch {
       setError("Failed to play from this source. Try another.");

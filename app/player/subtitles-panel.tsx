@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Minus, Plus } from "lucide-react";
 import type { SubtitleTrack } from "@/lib/types";
 import { PlayerPrefs, TitleStorage } from "@/lib/player-storage";
+import { subtitles } from "@/services/api.service";
 import { usePlayerStore } from "./player-store";
 
 function cn(...classes: (string | undefined | false | null)[]) {
@@ -98,18 +99,9 @@ export function SubtitlesPanel({
     if (!imdbId && !tmdbId) return;
     setLoading(true);
     autoSelectedRef.current = false;
-    const body: Record<string, unknown> = {};
-    if (imdbId) body.imdb_id = imdbId;
-    if (tmdbId) body.tmdb_id = tmdbId;
-    if (season != null) body.season = season;
-    if (episode != null) body.episode = episode;
-    fetch("/api/subtitles/search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    })
-      .then((r) => r.json())
-      .then((data: { tracks: SubtitleTrack[] }) => setTracks(data.tracks ?? []))
+    subtitles
+      .search({ imdb_id: imdbId, tmdb_id: tmdbId, season, episode })
+      .then((data) => setTracks(data.tracks ?? []))
       .catch(() => setTracks([]))
       .finally(() => setLoading(false));
   }, [imdbId, tmdbId, season, episode]);
