@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getSeasonEpisodes, getTvCredits, getTvDetails } from "@/lib/tmdb";
+import { tv } from "@/services/tmdb.service";
 import { TvDetailView } from "../../tv-detail-view";
 import type { TmdbEpisode } from "@/lib/types";
 
@@ -14,10 +14,10 @@ export default async function TvDetailPage({ params }: { params: Promise<{ id: s
   let initialEpisodes: TmdbEpisode[] = [];
 
   try {
-    [details, credits] = await Promise.all([getTvDetails(numId), getTvCredits(numId)]);
+    [details, credits] = await Promise.all([tv.details(numId), tv.credits(numId)]);
     firstRealSeason = details.seasons.find((s) => s.season_number > 0) ?? details.seasons[0];
     initialEpisodes = firstRealSeason
-      ? await getSeasonEpisodes(numId, firstRealSeason.season_number)
+      ? await tv.seasonEpisodes(numId, firstRealSeason.season_number)
       : [];
   } catch {
     notFound();

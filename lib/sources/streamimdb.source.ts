@@ -1,4 +1,4 @@
-import { getMovieImdbId, getTvImdbId } from "@/lib/tmdb";
+import { movies, tv } from "@/services/tmdb.service";
 import type { PlayResponse, ResolveParams, VideoSource } from "@/lib/types";
 import { selectBestStreams } from "../hlsStreamSelector";
 
@@ -11,8 +11,8 @@ async function resolveImdbId(params: ResolveParams): Promise<string | null> {
   if (params.imdb_id) return params.imdb_id;
   try {
     return params.media_type === "movie"
-      ? await getMovieImdbId(params.tmdb_id)
-      : await getTvImdbId(params.tmdb_id);
+      ? await movies.imdbId(params.tmdb_id)
+      : await tv.imdbId(params.tmdb_id);
   } catch {
     return null;
   }
@@ -28,30 +28,6 @@ function makeReferer(
     return `${BRIGHTPATH_BASE}/tv/${imdbId}/${season}/${episode}`;
   }
   return `${BRIGHTPATH_BASE}/movie/${imdbId}`;
-}
-
-function parseBestVariant(body: string, masterUrl: string): string | null {
-  const lines = body.split("\n");
-  let bestBandwidth = -1;
-  let bestUrl: string | null = null;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line.startsWith("#EXT-X-STREAM-INF:")) continue;
-    const bwMatch = line.match(/BANDWIDTH=(\d+)/);
-    const bandwidth = bwMatch ? parseInt(bwMatch[1]) : 0;
-    const urlLine = lines[i + 1]?.trim();
-    if (!urlLine || urlLine.startsWith("#")) continue;
-    if (bandwidth > bestBandwidth) {
-      bestBandwidth = bandwidth;
-      try {
-        bestUrl = new URL(urlLine, masterUrl).href;
-      } catch {
-        bestUrl = urlLine;
-      }
-    }
-  }
-  return bestUrl;
 }
 
 function encodeProxy(u: string, r: string): string {

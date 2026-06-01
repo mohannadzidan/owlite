@@ -10,7 +10,7 @@ import type {
   VideoSource,
 } from "@/lib/types";
 import type { ClientErrorPayload, ClientLogPayload } from "@/lib/observability";
-import { request, post } from "./request";
+import { request } from "./request";
 
 export { request };
 
@@ -84,6 +84,16 @@ export const mappings = {
 };
 
 export const observability = {
-  reportError: (payload: ClientErrorPayload) => post("/api/client-errors", payload),
-  reportLog: (payload: ClientLogPayload) => post("/api/client-logs", payload),
+  reportError: (payload: ClientErrorPayload) =>
+    request("/api/client-errors", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+  reportLog: (payload: ClientLogPayload) =>
+    request("/api/client-logs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
 };

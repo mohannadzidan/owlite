@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getSeriesDetails, getSeasonEpisodes } from "@/lib/tmdb";
+import { tv } from "@/services/tmdb.service";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -8,10 +8,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   try {
     if (seasonNum) {
-      const episodes = await getSeasonEpisodes(seriesId, Number(seasonNum));
+      const episodes = await tv.seasonEpisodes(seriesId, Number(seasonNum));
       return NextResponse.json({ episodes });
     }
-    const details = await getSeriesDetails(seriesId);
+    const details = await tv.series(seriesId);
     return NextResponse.json(details);
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
