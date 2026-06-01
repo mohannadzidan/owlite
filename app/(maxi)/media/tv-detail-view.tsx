@@ -15,7 +15,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import type { TmdbCredits, TmdbEpisode, TmdbSeason, TmdbTvDetails } from "@/lib/types";
+import type {
+  PlayResponse,
+  TmdbCredits,
+  TmdbEpisode,
+  TmdbSeason,
+  TmdbTvDetails,
+} from "@/lib/types";
 
 const BACKDROP = "https://image.tmdb.org/t/p/w1280";
 const STILL = "https://image.tmdb.org/t/p/w185";
@@ -274,6 +280,7 @@ export function TvDetailView({
         source_id: sourceId,
         tmdb_id: tmdbId,
         media_type: "tv",
+        screenSize: window.screen.height,
       };
       if (selectedEpisode) {
         body.season = selectedEpisode.season_number;
@@ -291,12 +298,8 @@ export function TvDetailView({
         return;
       }
 
-      const play = (await res.json()) as {
-        type: string;
-        url?: string;
-        master_manifest_url?: string;
-      };
-      const streamUrl = play.url ?? play.master_manifest_url ?? "";
+      const play = (await res.json()) as PlayResponse;
+      const streamUrl = play.type === "hls" ? play.master_manifest_url : play.url;
       const params = new URLSearchParams({
         url: streamUrl,
         title: tvDetails.name,

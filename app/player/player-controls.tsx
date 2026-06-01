@@ -1,17 +1,8 @@
 import { ComponentProps, useEffect, useRef, useState } from "react";
-import {
-  Play,
-  Pause,
-  RotateCcw,
-  RotateCw,
-  SkipForward,
-  Subtitles,
-  Volume2,
-  VolumeX,
-  Settings,
-} from "lucide-react";
+import { Play, Pause, RotateCcw, RotateCw, SkipForward, Subtitles, Settings } from "lucide-react";
 import { usePlayerStore } from "./player-store";
 import { SubtitlesPanel } from "./subtitles-panel";
+import type { SubtitleTrack } from "@/lib/types";
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
 
@@ -53,17 +44,19 @@ function PlayerControls({ className, children, style, ...props }: ComponentProps
 
 // ─── PlayPause ────────────────────────────────────────────────────────────────
 
-PlayerControls.PlayPause = function PlayPause({ className, ...props }: ComponentProps<"button">) {
+type TogglePlayProps = ComponentProps<"button"> & { onTogglePlay?: () => void };
+
+PlayerControls.PlayPause = function PlayPause({ className, ...props }: TogglePlayProps) {
   const playbackState = usePlayerStore((s) => s.playbackState);
-  const togglePlay = usePlayerStore((s) => s.togglePlay);
   const isPlaying = playbackState === "playing";
+  const { onTogglePlay } = props;
 
   return (
     <button
       type="button"
       aria-label={isPlaying ? "Pause" : "Play"}
       className={className}
-      onClick={togglePlay}
+      onClick={onTogglePlay}
       {...props}
     >
       {isPlaying ? <Pause /> : <Play />}
@@ -83,7 +76,7 @@ function ScreenButton({
     <button
       type="button"
       className={cn(
-        "relative flex flex-col items-center justify-center gap-0.5 w-[20vh] rounded-full p-10",
+        "relative flex flex-col items-center justify-center gap-0.5 w-[20vmin] rounded-full p-[1vmin]",
         "hover:bg-white/10 transition-colors",
         className,
       )}
@@ -100,15 +93,15 @@ function ScreenButton({
 PlayerControls.ScreenPlayPause = function ScreenPlayPause({
   className,
   ...props
-}: ComponentProps<"button">) {
+}: TogglePlayProps) {
   const playbackState = usePlayerStore((s) => s.playbackState);
-  const togglePlay = usePlayerStore((s) => s.togglePlay);
   const isPlaying = playbackState === "playing";
+  const { onTogglePlay } = props;
   return (
     <ScreenButton
       icon={isPlaying ? Pause : Play}
       className={className}
-      onClick={togglePlay}
+      onClick={onTogglePlay}
       {...props}
     />
   );
@@ -117,37 +110,23 @@ PlayerControls.ScreenPlayPause = function ScreenPlayPause({
 // ─── ScreenRewind ─────────────────────────────────────────────────────────────
 
 interface SkipComponentProps extends ComponentProps<"button"> {
-  /** Seconds to skip (default: 10) */
   seconds?: number;
-  /** Called when the keyboard shortcut triggers the action */
-  onKeyboardTrigger?: () => void;
+  onSkip?: (deltaSeconds: number) => void;
 }
 
 PlayerControls.ScreenRewind = function ScreenRewind({
   className,
   seconds = 10,
-  onKeyboardTrigger,
   ...props
 }: SkipComponentProps) {
-  const skip = usePlayerStore((s) => s.skip);
-  const onKeyboardTriggerRef = useRef(onKeyboardTrigger);
-  useEffect(() => {
-    onKeyboardTriggerRef.current = onKeyboardTrigger;
-  }, [onKeyboardTrigger]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        skip(-seconds);
-        onKeyboardTriggerRef.current?.();
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [skip, seconds]);
+  const { onSkip } = props;
   return (
-    <ScreenButton icon={RotateCcw} className={className} onClick={() => skip(-seconds)} {...props}>
+    <ScreenButton
+      icon={RotateCcw}
+      className={className}
+      onClick={() => onSkip?.(-seconds)}
+      {...props}
+    >
       <span className="text-[100%] font-medium leading-none absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2">
         {seconds}
       </span>
@@ -160,28 +139,16 @@ PlayerControls.ScreenRewind = function ScreenRewind({
 PlayerControls.ScreenForward = function ScreenForward({
   className,
   seconds = 10,
-  onKeyboardTrigger,
   ...props
 }: SkipComponentProps) {
-  const skip = usePlayerStore((s) => s.skip);
-  const onKeyboardTriggerRef = useRef(onKeyboardTrigger);
-  useEffect(() => {
-    onKeyboardTriggerRef.current = onKeyboardTrigger;
-  }, [onKeyboardTrigger]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") {
-        e.preventDefault();
-        skip(seconds);
-        onKeyboardTriggerRef.current?.();
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [skip, seconds]);
+  const { onSkip } = props;
   return (
-    <ScreenButton icon={RotateCw} className={className} onClick={() => skip(seconds)} {...props}>
+    <ScreenButton
+      icon={RotateCw}
+      className={className}
+      onClick={() => onSkip?.(seconds)}
+      {...props}
+    >
       <span className="text-[100%] font-medium leading-none absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2">
         {seconds}
       </span>
@@ -221,11 +188,11 @@ PlayerControls.ProgressBar = function ProgressBar({
   className,
   style,
   ...props
-}: ComponentProps<"div">) {
+}: ComponentProps<"div"> & { onSeek?: (timeSeconds: number) => void }) {
   const currentTime = usePlayerStore((s) => s.currentTime);
   const duration = usePlayerStore((s) => s.duration);
   const buffered = usePlayerStore((s) => s.buffered);
-  const seek = usePlayerStore((s) => s.seek);
+  const { onSeek } = props;
 
   const barRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -234,8 +201,10 @@ PlayerControls.ProgressBar = function ProgressBar({
   // Use refs so document-level handlers always see latest values without re-subscribing
   const durationRef = useRef(duration);
   durationRef.current = duration;
-  const seekRef = useRef(seek);
-  seekRef.current = seek;
+  const seekRef = useRef(onSeek);
+  useEffect(() => {
+    seekRef.current = onSeek;
+  }, [onSeek]);
 
   const getRatioFromX = (clientX: number): number | null => {
     const bar = barRef.current;
@@ -250,7 +219,7 @@ PlayerControls.ProgressBar = function ProgressBar({
       const ratio = getRatioFromX(e.clientX);
       if (ratio !== null) {
         setDragRatio(ratio);
-        seekRef.current(ratio * durationRef.current);
+        seekRef.current?.(ratio * durationRef.current);
       }
     };
     const onMouseUp = () => {
@@ -272,7 +241,7 @@ PlayerControls.ProgressBar = function ProgressBar({
     const ratio = getRatioFromX(e.clientX);
     if (ratio !== null) {
       setDragRatio(ratio);
-      seek(ratio * duration);
+      onSeek?.(ratio * duration);
     }
   };
 
@@ -280,13 +249,13 @@ PlayerControls.ProgressBar = function ProgressBar({
     const ratio = getRatioFromX(e.touches[0].clientX);
     if (ratio !== null) {
       setDragRatio(ratio);
-      seek(ratio * duration);
+      onSeek?.(ratio * duration);
     }
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     const ratio = getRatioFromX(e.changedTouches[0].clientX);
-    if (ratio !== null) seek(ratio * duration);
+    if (ratio !== null) onSeek?.(ratio * duration);
     setDragRatio(null);
   };
 
@@ -308,10 +277,6 @@ PlayerControls.ProgressBar = function ProgressBar({
       onMouseDown={handleMouseDown}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      onKeyDown={(e) => {
-        if (e.key === "ArrowRight") seek(currentTime + 5);
-        if (e.key === "ArrowLeft") seek(currentTime - 5);
-      }}
       {...props}
     >
       {/* Track */}
@@ -404,34 +369,6 @@ PlayerControls.Duration = function Duration({ className, ...props }: ComponentPr
   );
 };
 
-// ─── Volume ───────────────────────────────────────────────────────────────────
-
-PlayerControls.Volume = function Volume({ className, ...props }: ComponentProps<"button">) {
-  const muted = usePlayerStore((s) => s.muted);
-  const volume = usePlayerStore((s) => s.volume);
-  const videoEl = usePlayerStore((s) => s.videoEl);
-
-  const toggleMute = () => {
-    if (videoEl) videoEl.muted = !muted;
-  };
-
-  return (
-    <button
-      type="button"
-      aria-label={muted ? "Unmute" : "Mute"}
-      className={className}
-      onClick={toggleMute}
-      {...props}
-    >
-      {muted || volume === 0 ? (
-        <VolumeX size={20} strokeWidth={1.5} />
-      ) : (
-        <Volume2 size={20} strokeWidth={1.5} />
-      )}
-    </button>
-  );
-};
-
 // ─── Subtitles ────────────────────────────────────────────────────────────────
 
 interface SubtitlesControlProps extends Omit<ComponentProps<"button">, "onClick"> {
@@ -440,6 +377,11 @@ interface SubtitlesControlProps extends Omit<ComponentProps<"button">, "onClick"
   season?: number;
   episode?: number;
   titleId?: string | null;
+  onSelectTrack?: (track: SubtitleTrack) => void;
+  onClearSelection?: () => void;
+  onDelayChange?: (value: number) => void;
+  onFontSizeChange?: (value: number) => void;
+  onVerticalPosChange?: (value: number) => void;
 }
 
 PlayerControls.Subtitles = function SubtitlesControl({
@@ -450,6 +392,11 @@ PlayerControls.Subtitles = function SubtitlesControl({
   season,
   episode,
   titleId,
+  onSelectTrack,
+  onClearSelection,
+  onDelayChange,
+  onFontSizeChange,
+  onVerticalPosChange,
   ...props
 }: SubtitlesControlProps) {
   const [open, setOpen] = useState(false);
@@ -488,6 +435,11 @@ PlayerControls.Subtitles = function SubtitlesControl({
           season={season}
           episode={episode}
           titleId={titleId}
+          onSelectTrack={onSelectTrack}
+          onClearSelection={onClearSelection}
+          onDelayChange={onDelayChange}
+          onFontSizeChange={onFontSizeChange}
+          onVerticalPosChange={onVerticalPosChange}
         />
       )}
     </div>
@@ -496,12 +448,15 @@ PlayerControls.Subtitles = function SubtitlesControl({
 
 // ─── Quality ──────────────────────────────────────────────────────────────────
 
-PlayerControls.Quality = function Quality({ className, ...props }: ComponentProps<"div">) {
+PlayerControls.Quality = function Quality({
+  className,
+  ...props
+}: ComponentProps<"div"> & { onQualityChange?: (level: number) => void }) {
   const [open, setOpen] = useState(false);
   const qualityLevels = usePlayerStore((s) => s.qualityLevels);
   const activeQualityLevel = usePlayerStore((s) => s.activeQualityLevel);
-  const setQualityLevel = usePlayerStore((s) => s.setQualityLevel);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { onQualityChange } = props;
 
   useEffect(() => {
     if (!open) return;
@@ -514,7 +469,7 @@ PlayerControls.Quality = function Quality({ className, ...props }: ComponentProp
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open]);
 
-  if (qualityLevels.length === 0) return null;
+  if (qualityLevels.length <= 1) return null;
 
   const activeLevel = qualityLevels.find((l) => l.index === activeQualityLevel);
   const label = activeQualityLevel === -1 ? "Auto" : (activeLevel?.name ?? "Auto");
@@ -540,7 +495,7 @@ PlayerControls.Quality = function Quality({ className, ...props }: ComponentProp
               activeQualityLevel === -1 ? "text-white font-medium" : "text-white/70",
             )}
             onClick={() => {
-              setQualityLevel(-1);
+              onQualityChange?.(-1);
               setOpen(false);
             }}
           >
@@ -555,7 +510,7 @@ PlayerControls.Quality = function Quality({ className, ...props }: ComponentProp
                 activeQualityLevel === level.index ? "text-white font-medium" : "text-white/70",
               )}
               onClick={() => {
-                setQualityLevel(level.index);
+                onQualityChange?.(level.index);
                 setOpen(false);
               }}
             >

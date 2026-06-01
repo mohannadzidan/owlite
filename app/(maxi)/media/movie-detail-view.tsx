@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { BookmarkIcon, EyeIcon, FilmIcon, PlayIcon, Share2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { TmdbCredits, TmdbMovieDetails } from "@/lib/types";
+import type { PlayResponse, TmdbCredits, TmdbMovieDetails } from "@/lib/types";
 
 const BACKDROP = "https://image.tmdb.org/t/p/w1280";
 
@@ -112,6 +112,7 @@ export function MovieDetailView({ tmdbId, movieDetails, credits }: Props) {
           source_id: sourceId,
           tmdb_id: tmdbId,
           media_type: "movie",
+          screenSize: window.screen.height,
         }),
       });
 
@@ -120,12 +121,8 @@ export function MovieDetailView({ tmdbId, movieDetails, credits }: Props) {
         return;
       }
 
-      const play = (await res.json()) as {
-        type: string;
-        url?: string;
-        master_manifest_url?: string;
-      };
-      const streamUrl = play.url ?? play.master_manifest_url ?? "";
+      const play = (await res.json()) as PlayResponse;
+      const streamUrl = play.type === "hls" ? play.master_manifest_url : play.url;
       const params = new URLSearchParams({
         url: streamUrl,
         title: movieDetails.title,

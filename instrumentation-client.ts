@@ -22,6 +22,9 @@ import {
   type ClientErrorPayload,
   type ConsoleMethodName,
 } from "@/lib/observability";
+import { shortcutsStore } from "./lib/shortcuts/store";
+import { SHORTCUTS } from "./lib/constants/shortcuts";
+import { installShortcuts, ShortcutStore } from "./lib/shortcuts";
 
 function getCookie(name: string): string | null {
   if (typeof document === "undefined") return null;
@@ -269,3 +272,29 @@ try {
 } catch {
   // Intentionally swallow instrumentation initialization failures.
 }
+
+/**
+ * storing and loading shortcuts from localStorage to allow persistence
+ */
+
+const storedShortcuts: ShortcutStore["shortcuts"] = JSON.parse(
+  localStorage.getItem("shortcuts") ?? "{}",
+);
+SHORTCUTS.forEach((shortcut) => {
+  if (!storedShortcuts[shortcut.id]) {
+    storedShortcuts[shortcut.id] = shortcut;
+  }
+  shortcutsStore.getState().register(storedShortcuts[shortcut.id]);
+});
+
+// write shortcuts including defaults that were missing
+localStorage.setItem("shortcuts", JSON.stringify(storedShortcuts));
+
+// persist shortcuts to localStorage whenever they change
+shortcutsStore.subscribe((state, prevState) => {
+  if (state.shortcuts !== prevState.shortcuts) {
+    localStorage.setItem("shortcuts", JSON.stringify(state.shortcuts));
+  }
+});
+
+installShortcuts();

@@ -7,6 +7,6 @@ export async function GET(request: NextRequest) {
 
   if (!tmdbId) return NextResponse.json({ error: "tmdb_id required" }, { status: 400 });
 
-  const sources = getSources().map((s) => ({ id: s.id, name: s.name, priority: s.priority }));
+  const sources = getSources();
   return NextResponse.json({ sources, tmdb_id: tmdbId, media_type: mediaType });
 }

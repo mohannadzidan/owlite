@@ -85,6 +85,8 @@ export interface VideoSource {
 }
 
 export interface ResolveParams {
+  screenSize: number;
+  userAgent: string;
   tmdb_id: number;
   media_type: "movie" | "tv";
   season?: number;
@@ -99,7 +101,7 @@ export type PlayResponse =
       subtitles_url?: string;
       metadata: { title?: string; [key: string]: unknown };
     }
-  | { type: "hls"; master_manifest_url: string }
+  | { type: "hls"; master_manifest_url: string; fileName?: string }
   | { type: "external_url"; url: string };
 
 export interface LocalMapping {

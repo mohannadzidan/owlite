@@ -61,9 +61,25 @@ interface SubtitlesPanelProps {
   season?: number;
   episode?: number;
   titleId?: string | null;
+  onSelectTrack?: (track: SubtitleTrack) => void;
+  onClearSelection?: () => void;
+  onDelayChange?: (value: number) => void;
+  onFontSizeChange?: (value: number) => void;
+  onVerticalPosChange?: (value: number) => void;
 }
 
-export function SubtitlesPanel({ imdbId, tmdbId, season, episode, titleId }: SubtitlesPanelProps) {
+export function SubtitlesPanel({
+  imdbId,
+  tmdbId,
+  season,
+  episode,
+  titleId,
+  onSelectTrack,
+  onClearSelection,
+  onDelayChange,
+  onFontSizeChange,
+  onVerticalPosChange,
+}: SubtitlesPanelProps) {
   const [tracks, setTracks] = useState<SubtitleTrack[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
@@ -71,14 +87,9 @@ export function SubtitlesPanel({ imdbId, tmdbId, season, episode, titleId }: Sub
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
   const activeExternalTrackId = usePlayerStore((s) => s.activeExternalTrackId);
-  const setExternalSubtitleUrl = usePlayerStore((s) => s.setExternalSubtitleUrl);
-  const setActiveExternalTrackId = usePlayerStore((s) => s.setActiveExternalTrackId);
   const delay = usePlayerStore((s) => s.subtitleDelay);
   const fontSize = usePlayerStore((s) => s.subtitleFontSize);
   const verticalPos = usePlayerStore((s) => s.subtitleVerticalPosition);
-  const setDelay = usePlayerStore((s) => s.setSubtitleDelay);
-  const setFontSize = usePlayerStore((s) => s.setSubtitleFontSize);
-  const setVerticalPos = usePlayerStore((s) => s.setSubtitleVerticalPosition);
 
   // Auto-select preferred language once tracks load (runs only once per load)
   const autoSelectedRef = useRef(false);
@@ -149,8 +160,7 @@ export function SubtitlesPanel({ imdbId, tmdbId, season, episode, titleId }: Sub
         setDownloadingId(null);
         return;
       }
-      setExternalSubtitleUrl(track.download_url);
-      setActiveExternalTrackId(track.id);
+      onSelectTrack?.(track);
       PlayerPrefs.subtitleLanguage.set(track.language);
       if (titleId) {
         TitleStorage.patch(titleId, {
@@ -165,8 +175,7 @@ export function SubtitlesPanel({ imdbId, tmdbId, season, episode, titleId }: Sub
   };
 
   const handleOff = () => {
-    setExternalSubtitleUrl(null);
-    setActiveExternalTrackId(null);
+    onClearSelection?.();
     setDownloadError(null);
     if (titleId) {
       TitleStorage.patch(titleId, { subtitleTrackId: undefined, subtitleDownloadUrl: undefined });
@@ -275,20 +284,20 @@ export function SubtitlesPanel({ imdbId, tmdbId, season, episode, titleId }: Sub
           <Stepper
             label="Delay"
             value={delayLabel}
-            onDecrement={() => setDelay(Math.round((delay - 0.5) * 10) / 10)}
-            onIncrement={() => setDelay(Math.round((delay + 0.5) * 10) / 10)}
+            onDecrement={() => onDelayChange?.(Math.round((delay - 0.5) * 10) / 10)}
+            onIncrement={() => onDelayChange?.(Math.round((delay + 0.5) * 10) / 10)}
           />
           <Stepper
             label="Size"
             value={`${fontSize}%`}
-            onDecrement={() => setFontSize(Math.max(25, fontSize - 5))}
-            onIncrement={() => setFontSize(Math.min(200, fontSize + 5))}
+            onDecrement={() => onFontSizeChange?.(Math.max(25, fontSize - 5))}
+            onIncrement={() => onFontSizeChange?.(Math.min(200, fontSize + 5))}
           />
           <Stepper
             label="Vertical Position"
             value={`${verticalPos}%`}
-            onDecrement={() => setVerticalPos(Math.max(0, verticalPos - 5))}
-            onIncrement={() => setVerticalPos(Math.min(50, verticalPos + 5))}
+            onDecrement={() => onVerticalPosChange?.(Math.max(0, verticalPos - 5))}
+            onIncrement={() => onVerticalPosChange?.(Math.min(50, verticalPos + 5))}
           />
         </div>
       </div>

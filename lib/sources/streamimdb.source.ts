@@ -1,5 +1,6 @@
 import { getMovieImdbId, getTvImdbId } from "@/lib/tmdb";
 import type { PlayResponse, ResolveParams, VideoSource } from "@/lib/types";
+import { selectBestStreams } from "../hlsStreamSelector";
 
 const VAPLAYER_API_URL = process.env.VAPLAYER_API_URL ?? "https://streamdata.vaplayer.ru/api.php";
 const BRIGHTPATH_BASE = "https://brightpathsignals.com/embed";
@@ -59,15 +60,17 @@ function encodeProxy(u: string, r: string): string {
 
 interface VaplayerResponse {
   status?: number;
-  data?: { stream_urls?: string[] };
+  data?: { stream_urls?: string[]; file_name?: string };
 }
 
 async function fetchBestStreamUrl(
+  screenSize: number,
+  userAgent: string,
   imdbId: string,
   mediaType: "movie" | "tv",
   season?: number,
   episode?: number,
-): Promise<string | null> {
+): Promise<{ url: string; fileName: string } | null> {
   const referer = makeReferer(imdbId, mediaType, season, episode);
 
   const apiUrl = new URL(VAPLAYER_API_URL);
@@ -96,34 +99,32 @@ async function fetchBestStreamUrl(
 
   if (!apiRes.ok) return null;
   const body = (await apiRes.json()) as VaplayerResponse;
+  console.log("Vaplayer response", apiUrl, body);
+  console.log(body);
   const streamUrls = body?.data?.stream_urls;
   if (!Array.isArray(streamUrls) || streamUrls.length === 0) return null;
-
-  // Try each stream URL, prefer one where we can parse the master playlist
-  for (const streamUrl of streamUrls) {
-    try {
-      const m3u8Res = await fetch(streamUrl, {
-        headers: {
-          "User-Agent": UA,
-          Referer: referer,
-          Origin: "https://brightpathsignals.com",
-        },
-        signal: AbortSignal.timeout(6000),
-      });
-      if (!m3u8Res.ok) continue;
-      const m3u8Body = await m3u8Res.text();
-      if (!m3u8Body.trimStart().startsWith("#EXTM3U")) continue;
-
-      if (m3u8Body.includes("#EXT-X-STREAM-INF:")) {
-        return parseBestVariant(m3u8Body, streamUrl) ?? streamUrl;
-      }
-      return streamUrl;
-    } catch {
-      continue;
-    }
+  try {
+    const scoredStreams = await selectBestStreams({
+      m3u8Fetchers: streamUrls.map(
+        (url) => (signal) =>
+          fetch(url, {
+            headers: {
+              "User-Agent": UA,
+              Referer: referer,
+              Origin: "https://brightpathsignals.com",
+            },
+            signal,
+          }),
+      ),
+      screenHeight: screenSize,
+      userAgent,
+    });
+    console.log("Scored streams", scoredStreams);
+    return { url: scoredStreams[0].url, fileName: body.data!.file_name! };
+  } catch (e) {
+    console.error("Error selecting best stream", e);
+    return null;
   }
-
-  return streamUrls[0] ?? null;
 }
 
 const streamImdbSource: VideoSource = {
@@ -136,20 +137,23 @@ const streamImdbSource: VideoSource = {
     const imdbId = await resolveImdbId(params);
     if (!imdbId) return null;
 
-    const streamUrl = await fetchBestStreamUrl(
+    const bestStream = await fetchBestStreamUrl(
+      params.screenSize,
+      params.userAgent,
       imdbId,
       params.media_type,
       params.season,
       params.episode,
     );
-    if (!streamUrl) return null;
+    if (!bestStream) return null;
 
     const referer = makeReferer(imdbId, params.media_type, params.season, params.episode);
-    const encoded = encodeProxy(streamUrl, referer);
+    const encoded = encodeProxy(bestStream.url, referer);
 
     return {
       type: "hls",
       master_manifest_url: `/api/hls-proxy?p=${encoded}`,
+      fileName: bestStream.fileName,
     };
   },
 };

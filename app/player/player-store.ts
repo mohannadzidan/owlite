@@ -177,3 +177,9 @@ export function usePlayerStore<T>(selector: (state: PlayerState) => T): T {
   if (!store) throw new Error("usePlayerStore must be used inside <Player>");
   return useStore(store, selector);
 }
+
+export function usePlayerStoreApi(): PlayerStoreApi {
+  const store = useContext(PlayerStoreContext);
+  if (!store) throw new Error("usePlayerStore must be used inside <Player>");
+  return store;
+}

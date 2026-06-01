@@ -15,7 +15,7 @@ export default function FullScreenButton() {
           document.exitFullscreen?.();
           setMaximized(false);
         } else {
-          document.body.requestFullscreen();
+          document.documentElement.requestFullscreen();
           setMaximized(true);
         }
       }}

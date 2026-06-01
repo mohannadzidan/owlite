@@ -44,7 +44,11 @@ export function SourceSelectionSheet({ open, resolveParams, onResolved, onCancel
       const res = await fetch("/api/play", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ source_id: sourceId, ...resolveParams }),
+        body: JSON.stringify({
+          source_id: sourceId,
+          ...resolveParams,
+          screenSize: window.screen.height,
+        }),
       });
       if (!res.ok) throw new Error("Source failed to resolve");
       const data = (await res.json()) as PlayResponse;
