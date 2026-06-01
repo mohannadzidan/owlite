@@ -1,6 +1,5 @@
 // simpleHlsStreamSelector.ts
 
-import { error, log } from "console";
 import { parseMasterPlaylist, type HLSVariantStream } from "./hlsParser";
 
 // ----------------------------------------------------------------------

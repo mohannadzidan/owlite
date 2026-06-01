@@ -24,12 +24,7 @@ export interface VaplayerResponse {
 export const streams = {
   referer: buildReferer,
 
-  urls: (
-    imdbId: string,
-    mediaType: "movie" | "tv",
-    season?: number,
-    episode?: number,
-  ): Promise<VaplayerResponse> => {
+  urls: (imdbId: string, mediaType: "movie" | "tv", season?: number, episode?: number) => {
     const ref = buildReferer(imdbId, mediaType, season, episode);
     const url = new URL(VAPLAYER_API_URL);
     url.searchParams.set("imdb", imdbId);

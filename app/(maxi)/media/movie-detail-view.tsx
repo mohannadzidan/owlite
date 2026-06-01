@@ -2,12 +2,14 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { BookmarkIcon, EyeIcon, FilmIcon, PlayIcon, Share2Icon } from "lucide-react";
+import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { PlayResponse, TmdbCredits, TmdbMovieDetails } from "@/lib/types";
 import { sources as sourcesApi } from "@/services/api.service";
+import ErrorFallback from "@/components/error";
 
 const BACKDROP = "https://image.tmdb.org/t/p/w1280";
 
@@ -34,10 +36,12 @@ function Pill({ label }: { label: string }) {
 function MovieSourcesPanel({
   sources,
   loading,
+  error,
   onPlay,
 }: {
   sources: SourceInfo[];
   loading: boolean;
+  error: boolean;
   onPlay: (id: string) => void;
 }) {
   return (
@@ -46,7 +50,11 @@ function MovieSourcesPanel({
         <p className="text-sm font-semibold text-white/80">Available Sources</p>
       </div>
       <div className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {loading ? (
+        {error ? (
+          <div className="flex h-full items-center justify-center p-8">
+            <ErrorFallback title="Failed to load" message="Could not load available sources." />
+          </div>
+        ) : loading ? (
           <div className="flex flex-col gap-3 p-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="h-12 rounded-lg" />
@@ -78,41 +86,33 @@ function MovieSourcesPanel({
 
 export function MovieDetailView({ tmdbId, movieDetails, credits }: Props) {
   const router = useRouter();
-  const [sources, setSources] = useState<SourceInfo[]>([]);
-  const [sourcesLoading, setSourcesLoading] = useState(false);
   const [playError, setPlayError] = useState<string | null>(null);
 
-  const fetchSources = useCallback(async () => {
-    setSourcesLoading(true);
-    setSources([]);
-    try {
-      const data = await sourcesApi.list(tmdbId, "movie");
-      setSources(data.sources ?? []);
-    } catch {
-      setSources([]);
-    } finally {
-      setSourcesLoading(false);
-    }
-  }, [tmdbId]);
+  const {
+    data: sourcesData,
+    isLoading: sourcesLoading,
+    error: sourcesError,
+  } = useSWR(["sources", tmdbId, "movie"], async () => {
+    const result = await sourcesApi.list(tmdbId, "movie");
+    if ("error" in result) throw result;
+    return result;
+  });
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      fetchSources();
-    }, 0);
-    return () => clearTimeout(timeout);
-  }, [fetchSources]);
+  const sources: SourceInfo[] = sourcesData?.sources ?? [];
 
   const handlePlay = useCallback(
     async (sourceId: string) => {
       setPlayError(null);
       let play: PlayResponse;
       try {
-        play = await sourcesApi.play({
+        const result = await sourcesApi.play({
           source_id: sourceId,
           tmdb_id: tmdbId,
           media_type: "movie",
           screenSize: window.screen.height,
         });
+        if ("error" in result) throw result;
+        play = result;
       } catch {
         setPlayError("Source could not resolve this title.");
         return;
@@ -126,7 +126,7 @@ export function MovieDetailView({ tmdbId, movieDetails, credits }: Props) {
       params.set("tmdb_id", String(tmdbId));
       router.push(`/player?${params}`);
     },
-    [tmdbId, router, movieDetails.title],
+    [tmdbId, router, movieDetails.title, movieDetails.imdb_id],
   );
 
   const cast = credits.cast.slice(0, 4);
@@ -259,7 +259,12 @@ export function MovieDetailView({ tmdbId, movieDetails, credits }: Props) {
         </div>
 
         <div className="flex w-96 flex-shrink-0 flex-col m-4">
-          <MovieSourcesPanel sources={sources} loading={sourcesLoading} onPlay={handlePlay} />
+          <MovieSourcesPanel
+            sources={sources}
+            loading={sourcesLoading}
+            error={!!sourcesError}
+            onPlay={handlePlay}
+          />
         </div>
       </div>
     </>

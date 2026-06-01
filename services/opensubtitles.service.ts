@@ -45,7 +45,7 @@ export interface DownloadLinkResponse {
 }
 
 export const subtitles = {
-  search: (params: SearchParams): Promise<{ data: SubtitleItem[] }> => {
+  search: (params: SearchParams) => {
     const qs = new URLSearchParams();
     if (params.imdb_id) qs.set("imdb_id", params.imdb_id.replace("tt", ""));
     if (params.tmdb_id != null) qs.set("tmdb_id", String(params.tmdb_id));

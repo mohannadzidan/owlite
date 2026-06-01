@@ -31,25 +31,28 @@ interface TmdbListResponse {
 }
 
 export const discover = {
-  trending: async (): Promise<TmdbMedia[]> => {
+  trending: async () => {
     const [moviesRes, tvRes] = await Promise.all([
       request<TmdbListResponse>("/trending/movie/week", { next: { revalidate: TTL.discover } }),
       request<TmdbListResponse>("/trending/tv/week", { next: { revalidate: TTL.discover } }),
     ]);
+    if ("error" in moviesRes) return moviesRes;
+    if ("error" in tvRes) return tvRes;
     return [
       ...(moviesRes.results ?? []).map((m) => ({ ...m, media_type: "movie" as const })),
       ...(tvRes.results ?? []).map((t) => ({ ...t, media_type: "tv" as const })),
-    ];
+    ] as TmdbMedia[];
   },
 };
 
 export const search = {
-  multi: async (query: string): Promise<TmdbMedia[]> => {
-    if (!query.trim()) return [];
+  multi: async (query: string) => {
+    if (!query.trim()) return [] as TmdbMedia[];
     const data = await request<TmdbListResponse>(
       `/search/multi?query=${encodeURIComponent(query)}&include_adult=false`,
       { next: { revalidate: TTL.search } },
     );
+    if ("error" in data) return data;
     return (data.results ?? []).filter(
       (r): r is TmdbMedia => r.media_type === "movie" || r.media_type === "tv",
     );
@@ -63,10 +66,11 @@ export const movies = {
   credits: (id: number) =>
     request<TmdbCredits>(`/movie/${id}/credits`, { next: { revalidate: TTL.details } }),
 
-  imdbId: async (id: number): Promise<string | null> => {
+  imdbId: async (id: number) => {
     const data = await request<{ imdb_id: string | null }>(`/movie/${id}/external_ids`, {
       next: { revalidate: TTL.details },
     });
+    if ("error" in data) return data;
     return data.imdb_id;
   },
 };
@@ -78,24 +82,27 @@ export const tv = {
   credits: (id: number) =>
     request<TmdbCredits>(`/tv/${id}/credits`, { next: { revalidate: TTL.details } }),
 
-  series: async (id: number): Promise<TmdbSeriesDetails> => {
+  series: async (id: number) => {
     const data = await request<{ id: number; name: string; seasons: TmdbSeason[] }>(`/tv/${id}`, {
       next: { revalidate: TTL.details },
     });
-    return { id: data.id, name: data.name, seasons: data.seasons ?? [] };
+    if ("error" in data) return data;
+    return { id: data.id, name: data.name, seasons: data.seasons ?? [] } as TmdbSeriesDetails;
   },
 
-  seasonEpisodes: async (seriesId: number, season: number): Promise<TmdbEpisode[]> => {
+  seasonEpisodes: async (seriesId: number, season: number) => {
     const data = await request<{ episodes: TmdbEpisode[] }>(`/tv/${seriesId}/season/${season}`, {
       next: { revalidate: TTL.details },
     });
-    return data.episodes ?? [];
+    if ("error" in data) return data;
+    return (data.episodes ?? []) as TmdbEpisode[];
   },
 
-  imdbId: async (id: number): Promise<string | null> => {
+  imdbId: async (id: number) => {
     const data = await request<{ imdb_id: string | null }>(`/tv/${id}/external_ids`, {
       next: { revalidate: TTL.details },
     });
+    if ("error" in data) return data;
     return data.imdb_id;
   },
 };

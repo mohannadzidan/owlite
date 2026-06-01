@@ -112,7 +112,7 @@ function PlayerUI({
 
     let play: PlayResponse;
     try {
-      play = await sources.play({
+      const result = await sources.play({
         source_id: sourceId,
         tmdb_id: tmdbId,
         media_type: "tv",
@@ -120,6 +120,8 @@ function PlayerUI({
         episode: nextEpisode,
         screenSize: window.screen.height,
       });
+      if ("error" in result) throw result;
+      play = result;
     } catch {
       return;
     }
@@ -136,7 +138,8 @@ function PlayerUI({
     });
 
     // Fetch series info to compute the next-next episode
-    const seriesData = await tmdb.tvSeries(tmdbId).catch(() => null);
+    const seriesResult = await tmdb.tvSeries(tmdbId).catch(() => null);
+    const seriesData = seriesResult && !("error" in seriesResult) ? seriesResult : null;
     if (seriesData) {
       const realSeasons = (seriesData.seasons ?? []).filter((s) => s.season_number > 0);
       const currentSeasonInfo = realSeasons.find((s) => s.season_number === nextSeason);

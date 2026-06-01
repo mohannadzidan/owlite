@@ -24,6 +24,10 @@ const localSource: VideoSource = {
   id: "local",
   name: "Local Files",
   priority: 1,
+  async has(params: Omit<ResolveParams, "screenSize" | "userAgent">): Promise<boolean> {
+    const mappings = getMappings();
+    return mappings.some((m) => m.tmdb_id === params.tmdb_id && m.media_type === params.media_type);
+  },
   async resolve(params: ResolveParams): Promise<PlayResponse | null> {
     const mappings = getMappings();
     const mapping = mappings.find(

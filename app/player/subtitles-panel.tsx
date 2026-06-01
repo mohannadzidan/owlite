@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Minus, Plus } from "lucide-react";
+import useSWR from "swr";
 import type { SubtitleTrack } from "@/lib/types";
 import { PlayerPrefs, TitleStorage } from "@/lib/player-storage";
 import { subtitles } from "@/services/api.service";
@@ -81,8 +82,6 @@ export function SubtitlesPanel({
   onFontSizeChange,
   onVerticalPosChange,
 }: SubtitlesPanelProps) {
-  const [tracks, setTracks] = useState<SubtitleTrack[]>([]);
-  const [loading, setLoading] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
@@ -92,18 +91,18 @@ export function SubtitlesPanel({
   const fontSize = usePlayerStore((s) => s.subtitleFontSize);
   const verticalPos = usePlayerStore((s) => s.subtitleVerticalPosition);
 
+  const { data: subtitlesData, isLoading: loading } = useSWR(
+    imdbId || tmdbId ? ["subtitles", imdbId, tmdbId, season, episode] : null,
+    () => subtitles.search({ imdb_id: imdbId, tmdb_id: tmdbId, season, episode }),
+  );
+  const tracks: SubtitleTrack[] =
+    subtitlesData && !("error" in subtitlesData) ? (subtitlesData.tracks ?? []) : [];
+
   // Auto-select preferred language once tracks load (runs only once per load)
   const autoSelectedRef = useRef(false);
 
   useEffect(() => {
-    if (!imdbId && !tmdbId) return;
-    setLoading(true);
     autoSelectedRef.current = false;
-    subtitles
-      .search({ imdb_id: imdbId, tmdb_id: tmdbId, season, episode })
-      .then((data) => setTracks(data.tracks ?? []))
-      .catch(() => setTracks([]))
-      .finally(() => setLoading(false));
   }, [imdbId, tmdbId, season, episode]);
 
   // Auto-select language when tracks become available:

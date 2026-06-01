@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import { SearchIcon } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import useSWR from "swr";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { TmdbMedia } from "@/lib/types";
@@ -94,49 +95,29 @@ function MediaRow({
 
 export default function HomePage() {
   const [query, setQuery] = useState("");
-  const [movies, setMovies] = useState<TmdbMedia[]>([]);
-  const [series, setSeries] = useState<TmdbMedia[]>([]);
-  const [searchResults, setSearchResults] = useState<TmdbMedia[]>([]);
-  const [discoverLoading, setDiscoverLoading] = useState(true);
-  const [searchLoading, setSearchLoading] = useState(false);
   const debouncedQuery = useDebounce(query, 400);
-  const abortRef = useRef<AbortController | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    tmdb
-      .discover()
-      .then((d) => {
-        const results = d.results ?? [];
-        setMovies(results.filter((r) => r.media_type === "movie"));
-        setSeries(results.filter((r) => r.media_type === "tv"));
-      })
-      .catch(() => {})
-      .finally(() => setDiscoverLoading(false));
-  }, []);
+  const { data: discoverData, isLoading: discoverLoading } = useSWR("tmdb-discover", async () => {
+    const result = await tmdb.discover();
+    if ("error" in result) throw result;
+    return result;
+  });
 
-  const runSearch = useCallback((q: string) => {
-    abortRef.current?.abort();
-    if (!q.trim()) {
-      setSearchResults([]);
-      setSearchLoading(false);
-      return;
-    }
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-    setSearchLoading(true);
-    tmdb
-      .search(q, { signal: ctrl.signal })
-      .then((d) => setSearchResults(d.results ?? []))
-      .catch((e: unknown) => {
-        if (e instanceof Error && e.name !== "AbortError") setSearchResults([]);
-      })
-      .finally(() => setSearchLoading(false));
-  }, []);
+  const trimmedQuery = debouncedQuery.trim();
+  const { data: searchData, isLoading: searchLoading } = useSWR(
+    trimmedQuery ? ["tmdb-search", trimmedQuery] : null,
+    async ([, q]) => {
+      const result = await tmdb.search(q);
+      if ("error" in result) throw result;
+      return result;
+    },
+  );
 
-  useEffect(() => {
-    runSearch(debouncedQuery);
-  }, [debouncedQuery, runSearch]);
-
+  const allResults = discoverData?.results ?? [];
+  const movies = allResults.filter((r) => r.media_type === "movie");
+  const series = allResults.filter((r) => r.media_type === "tv");
+  const searchResults = searchData?.results ?? [];
   const isSearching = query.trim().length > 0;
 
   return (
@@ -147,6 +128,7 @@ export default function HomePage() {
           <div className="border-input bg-input/60 focus-within:border-primary/60 flex items-center gap-2 rounded-full border px-4 py-2.5 backdrop-blur-sm transition-colors">
             <SearchIcon className="text-muted-foreground h-4 w-4 flex-shrink-0" />
             <Input
+              ref={inputRef}
               placeholder="Search or paste link"
               value={query}
               onChange={(e) => setQuery(e.target.value)}

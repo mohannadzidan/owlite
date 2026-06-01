@@ -15,27 +15,38 @@ import { request } from "./request";
 export { request };
 
 export const tmdb = {
-  discover: () => request<{ results: TmdbMedia[] }>("/api/tmdb/discover"),
+  discover: () => request<{ results: TmdbMedia[] }, "internal_error">("/api/tmdb/discover"),
 
   search: (query: string, options?: RequestInit) =>
-    request<{ results: TmdbMedia[] }>(`/api/tmdb/search?q=${encodeURIComponent(query)}`, options),
+    request<{ results: TmdbMedia[] }, "internal_error">(
+      `/api/tmdb/search?q=${encodeURIComponent(query)}`,
+      options,
+    ),
 
-  tvDetails: (id: number) => request<TmdbTvDetails>(`/api/tmdb/tv/${id}/seasons`),
+  tvDetails: (id: number) => request<TmdbTvDetails, "internal_error">(`/api/tmdb/tv/${id}/seasons`),
 
   tvEpisodes: (id: number, season: number) =>
-    request<{ episodes: TmdbEpisode[] }>(`/api/tmdb/tv/${id}/seasons?season=${season}`),
+    request<{ episodes: TmdbEpisode[] }, "internal_error">(
+      `/api/tmdb/tv/${id}/seasons?season=${season}`,
+    ),
 
-  tvSeries: (id: number) => request<TmdbSeriesDetails>(`/api/tmdb/tv/${id}/seasons`),
+  tvSeries: (id: number) =>
+    request<TmdbSeriesDetails, "internal_error">(`/api/tmdb/tv/${id}/seasons`),
 };
 
 export const sources = {
   list: (tmdbId: number, mediaType: "movie" | "tv") =>
-    request<{ sources: Omit<VideoSource, "resolve">[]; tmdb_id: number; media_type: string }>(
-      `/api/sources?tmdb_id=${tmdbId}&media_type=${mediaType}`,
-    ),
+    request<
+      {
+        sources: Omit<VideoSource, "resolve" | "has">[];
+        tmdb_id: number;
+        media_type: string;
+      },
+      "could_not_resolve" | "bad_request" | "not_found"
+    >(`/api/sources?tmdb_id=${tmdbId}&media_type=${mediaType}`),
 
   play: (params: { source_id: string } & Omit<ResolveParams, "userAgent">) =>
-    request<PlayResponse>("/api/play", {
+    request<PlayResponse, "could_not_resolve" | "bad_request" | "not_found">("/api/play", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(params),
@@ -66,21 +77,23 @@ export const mappings = {
   list: () => request<LocalMapping[]>("/api/mappings"),
 
   create: (mapping: LocalMapping) =>
-    request<LocalMapping>("/api/mappings", {
+    request<LocalMapping, "bad_request">("/api/mappings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(mapping),
     }),
 
   update: (index: number, mapping: LocalMapping) =>
-    request<LocalMapping>("/api/mappings", {
+    request<LocalMapping, "bad_request" | "not_found">("/api/mappings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ index, ...mapping }),
     }),
 
   remove: (index: number) =>
-    request<{ ok: boolean }>(`/api/mappings?index=${index}`, { method: "DELETE" }),
+    request<{ ok: boolean }, "bad_request" | "not_found">(`/api/mappings?index=${index}`, {
+      method: "DELETE",
+    }),
 };
 
 export const observability = {

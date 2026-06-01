@@ -16,5 +16,7 @@ export default async function MovieDetailPage({ params }: { params: Promise<{ id
     notFound();
   }
 
+  if (!details || "error" in details || !credits || "error" in credits) notFound();
+
   return <MovieDetailView tmdbId={numId} movieDetails={details} credits={credits} />;
 }

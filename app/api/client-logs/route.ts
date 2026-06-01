@@ -8,11 +8,17 @@ export async function POST(request: NextRequest) {
   try {
     payload = (await request.json()) as ClientLogPayload;
   } catch {
-    return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+    return NextResponse.json(
+      { error: { code: "bad_request", message: "Invalid JSON payload" } },
+      { status: 400 },
+    );
   }
 
   if (!payload?.sessionId || !payload?.method || !payload?.args || !payload?.timestamp) {
-    return NextResponse.json({ error: "Invalid log payload" }, { status: 400 });
+    return NextResponse.json(
+      { error: { code: "bad_request", message: "Invalid log payload" } },
+      { status: 400 },
+    );
   }
 
   const cookieSessionId = request.cookies.get(SESSION_COOKIE_NAME)?.value;

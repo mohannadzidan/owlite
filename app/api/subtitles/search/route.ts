@@ -20,6 +20,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ tracks: [] });
   }
 
+  if ("error" in data) return NextResponse.json({ tracks: [] });
+
   const tracks: SubtitleTrack[] = (data.data ?? []).map((item) => ({
     id: String(item.attributes.files[0]?.file_id ?? item.id),
     language: item.attributes.language,

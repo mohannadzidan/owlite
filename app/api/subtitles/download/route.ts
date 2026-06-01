@@ -33,7 +33,10 @@ export async function GET(request: NextRequest) {
   }
 
   if (!process.env.OPENSUBTITLES_API_KEY) {
-    return NextResponse.json({ error: "not_configured" }, { status: 503 });
+    return NextResponse.json(
+      { error: { code: "not_configured", message: "OpenSubtitles API key not configured" } },
+      { status: 503 },
+    );
   }
 
   let dlData;
@@ -43,22 +46,33 @@ export async function GET(request: NextRequest) {
     if (e instanceof HttpError && e.status === 429) {
       return NextResponse.json(
         {
-          error: "rate_limited",
-          message: "Subtitle download limit reached for today. Try again tomorrow.",
+          error: {
+            code: "rate_limited",
+            message: "Subtitle download limit reached for today. Try again tomorrow.",
+          },
         },
         { status: 429 },
       );
     }
-    return NextResponse.json({ error: "download_failed" }, { status: 502 });
+    return NextResponse.json(
+      { error: { code: "upstream_error", message: "Subtitle download failed" } },
+      { status: 502 },
+    );
   }
 
   if (!dlData.link) {
-    return NextResponse.json({ error: "no_download_link" }, { status: 502 });
+    return NextResponse.json(
+      { error: { code: "upstream_error", message: "No download link available" } },
+      { status: 502 },
+    );
   }
 
   const subRes = await fetch(dlData.link);
   if (!subRes.ok) {
-    return NextResponse.json({ error: "fetch_failed" }, { status: 502 });
+    return NextResponse.json(
+      { error: { code: "upstream_error", message: "Failed to fetch subtitle file" } },
+      { status: 502 },
+    );
   }
 
   let content = await subRes.text();

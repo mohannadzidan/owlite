@@ -12,6 +12,7 @@ import {
   PlayIcon,
   Share2Icon,
 } from "lucide-react";
+import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,7 @@ import type {
   TmdbTvDetails,
 } from "@/lib/types";
 import { sources as sourcesApi, tmdb } from "@/services/api.service";
+import ErrorFallback from "@/components/error";
 
 const BACKDROP = "https://image.tmdb.org/t/p/w1280";
 const STILL = "https://image.tmdb.org/t/p/w185";
@@ -63,6 +65,7 @@ function TvEpisodeListPanel({
   currentSeason,
   episodes,
   loading,
+  error,
   onSeasonChange,
   onEpisodeClick,
 }: {
@@ -70,6 +73,7 @@ function TvEpisodeListPanel({
   currentSeason: number;
   episodes: TmdbEpisode[];
   loading: boolean;
+  error: boolean;
   onSeasonChange: (n: number) => void;
   onEpisodeClick: (ep: TmdbEpisode) => void;
 }) {
@@ -115,7 +119,11 @@ function TvEpisodeListPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {loading ? (
+        {error ? (
+          <div className="flex h-full items-center justify-center p-8">
+            <ErrorFallback title="Failed to load" message="Could not load episodes." />
+          </div>
+        ) : loading ? (
           <div className="flex flex-col gap-1 p-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="flex gap-3 p-2">
@@ -170,12 +178,14 @@ function EpisodeSourcesPanel({
   episode,
   sources,
   loading,
+  error,
   onBack,
   onPlay,
 }: {
   episode: TmdbEpisode;
   sources: SourceInfo[];
   loading: boolean;
+  error: boolean;
   onBack: () => void;
   onPlay: (id: string) => void;
 }) {
@@ -191,7 +201,11 @@ function EpisodeSourcesPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {loading ? (
+        {error ? (
+          <div className="flex h-full items-center justify-center p-8">
+            <ErrorFallback title="Failed to load" message="Could not load available sources." />
+          </div>
+        ) : loading ? (
           <div className="flex flex-col gap-3 p-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="h-12 rounded-lg" />
@@ -231,53 +245,42 @@ export function TvDetailView({
   const router = useRouter();
 
   const [currentSeason, setCurrentSeason] = useState(initialSeasonNumber);
-  const [episodes, setEpisodes] = useState<TmdbEpisode[]>(initialEpisodes);
-  const [episodesLoading, setEpisodesLoading] = useState(false);
   const [selectedEpisode, setSelectedEpisode] = useState<TmdbEpisode | null>(null);
-
-  const [sources, setSources] = useState<SourceInfo[]>([]);
-  const [sourcesLoading, setSourcesLoading] = useState(false);
   const [playError, setPlayError] = useState<string | null>(null);
 
-  const fetchSources = useCallback(async () => {
-    setSourcesLoading(true);
-    setSources([]);
-    try {
-      const data = await sourcesApi.list(tmdbId, "tv");
-      setSources(data.sources ?? []);
-    } catch {
-      setSources([]);
-    } finally {
-      setSourcesLoading(false);
-    }
-  }, [tmdbId]);
+  const {
+    data: sourcesData,
+    isLoading: sourcesLoading,
+    error: sourcesError,
+  } = useSWR(["sources", tmdbId, "tv"], async () => {
+    const result = await sourcesApi.list(tmdbId, "tv");
+    if ("error" in result) throw result;
+    return result;
+  });
 
-  const handleSeasonChange = useCallback(
-    async (seasonNum: number) => {
-      setEpisodesLoading(true);
-      setSelectedEpisode(null);
-      try {
-        const data = await tmdb.tvEpisodes(tmdbId, seasonNum);
-        setEpisodes(data.episodes ?? []);
-        setCurrentSeason(seasonNum);
-      } finally {
-        setEpisodesLoading(false);
-      }
+  const {
+    data: episodesData,
+    isLoading: episodesLoading,
+    error: episodesError,
+  } = useSWR(
+    ["episodes", tmdbId, currentSeason],
+    async () => {
+      const result = await tmdb.tvEpisodes(tmdbId, currentSeason);
+      if ("error" in result) throw result;
+      return result;
     },
-    [tmdbId],
+    { fallbackData: { episodes: initialEpisodes } },
   );
 
-  const handleEpisodeClick = (ep: TmdbEpisode) => {
-    setSelectedEpisode(ep);
-    fetchSources();
-  };
+  const sources: SourceInfo[] = sourcesData?.sources ?? [];
+  const episodes: TmdbEpisode[] = episodesData?.episodes ?? [];
 
   const handlePlay = useCallback(
     async (sourceId: string) => {
       setPlayError(null);
       let play: PlayResponse;
       try {
-        play = await sourcesApi.play({
+        const result = await sourcesApi.play({
           source_id: sourceId,
           tmdb_id: tmdbId,
           media_type: "tv",
@@ -287,6 +290,8 @@ export function TvDetailView({
             episode: selectedEpisode.episode_number,
           }),
         });
+        if ("error" in result) throw result;
+        play = result;
       } catch {
         setPlayError("Source could not resolve this title.");
         return;
@@ -302,7 +307,6 @@ export function TvDetailView({
         params.set("season", String(selectedEpisode.season_number));
         params.set("episode", String(selectedEpisode.episode_number));
 
-        // Pre-compute next episode so the player can show the Next Episode button
         const realSeasons = tvDetails.seasons.filter((s) => s.season_number > 0);
         const currentEpIdx = episodes.findIndex(
           (e) => e.episode_number === selectedEpisode.episode_number,
@@ -445,6 +449,7 @@ export function TvDetailView({
               episode={selectedEpisode}
               sources={sources}
               loading={sourcesLoading}
+              error={!!sourcesError}
               onBack={() => setSelectedEpisode(null)}
               onPlay={handlePlay}
             />
@@ -454,8 +459,9 @@ export function TvDetailView({
               currentSeason={currentSeason}
               episodes={episodes}
               loading={episodesLoading}
-              onSeasonChange={handleSeasonChange}
-              onEpisodeClick={handleEpisodeClick}
+              error={!!episodesError}
+              onSeasonChange={setCurrentSeason}
+              onEpisodeClick={setSelectedEpisode}
             />
           )}
         </div>

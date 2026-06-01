@@ -82,6 +82,7 @@ export interface VideoSource {
   priority: number;
   description?: string;
   resolve: (params: ResolveParams) => Promise<PlayResponse | null>;
+  has: (params: Omit<ResolveParams, "screenSize" | "userAgent">) => Promise<boolean>;
 }
 
 export interface ResolveParams {

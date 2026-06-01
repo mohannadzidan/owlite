@@ -3,12 +3,16 @@ import { streams } from "@/services/streamimdb.service";
 import type { PlayResponse, ResolveParams, VideoSource } from "@/lib/types";
 import { selectBestStreams } from "../hlsStreamSelector";
 
-async function resolveImdbId(params: ResolveParams): Promise<string | null> {
-  if (params.imdb_id) return params.imdb_id;
+async function resolveImdbId(
+  params: Pick<ResolveParams, "tmdb_id" | "media_type">,
+): Promise<string | null> {
   try {
-    return params.media_type === "movie"
-      ? await movies.imdbId(params.tmdb_id)
-      : await tv.imdbId(params.tmdb_id);
+    const result =
+      params.media_type === "movie"
+        ? await movies.imdbId(params.tmdb_id)
+        : await tv.imdbId(params.tmdb_id);
+    if (result === null || typeof result === "string") return result;
+    return null;
   } catch {
     return null;
   }
@@ -28,7 +32,9 @@ async function fetchBestStreamUrl(
 ): Promise<{ url: string; fileName: string } | null> {
   let body;
   try {
-    body = await streams.urls(imdbId, mediaType, season, episode);
+    const result = await streams.urls(imdbId, mediaType, season, episode);
+    if ("error" in result) return null;
+    body = result;
   } catch {
     return null;
   }
@@ -59,7 +65,7 @@ const streamImdbSource: VideoSource = {
   description: "Online streaming via StreamIMDb",
 
   async resolve(params: ResolveParams): Promise<PlayResponse | null> {
-    const imdbId = await resolveImdbId(params);
+    const imdbId = params.imdb_id ?? (await resolveImdbId(params));
     if (!imdbId) return null;
 
     const bestStream = await fetchBestStreamUrl(
@@ -80,6 +86,19 @@ const streamImdbSource: VideoSource = {
       master_manifest_url: `/api/hls-proxy?p=${encoded}`,
       fileName: bestStream.fileName,
     };
+  },
+
+  async has(params) {
+    const imdbId = params.imdb_id ?? (await resolveImdbId(params));
+    if (!imdbId) return false;
+
+    try {
+      const result = await streams.urls(imdbId, params.media_type, params.season, params.episode);
+      if ("error" in result) return false;
+      return Array.isArray(result.data?.stream_urls) && (result.data?.stream_urls?.length ?? 0) > 0;
+    } catch {
+      return false;
+    }
   },
 };
 

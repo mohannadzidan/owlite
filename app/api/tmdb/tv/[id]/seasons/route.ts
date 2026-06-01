@@ -9,12 +9,22 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   try {
     if (seasonNum) {
       const episodes = await tv.seasonEpisodes(seriesId, Number(seasonNum));
+      if ("error" in episodes)
+        return NextResponse.json(
+          { error: { code: "upstream_error", message: episodes.error.message } },
+          { status: 502 },
+        );
       return NextResponse.json({ episodes });
     }
     const details = await tv.series(seriesId);
+    if ("error" in details)
+      return NextResponse.json(
+        { error: { code: "upstream_error", message: details.error.message } },
+        { status: 502 },
+      );
     return NextResponse.json(details);
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: { code: "internal_error", message } }, { status: 500 });
   }
 }

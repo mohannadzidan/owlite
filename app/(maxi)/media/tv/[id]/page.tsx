@@ -15,13 +15,17 @@ export default async function TvDetailPage({ params }: { params: Promise<{ id: s
 
   try {
     [details, credits] = await Promise.all([tv.details(numId), tv.credits(numId)]);
+    if (!details || "error" in details || !credits || "error" in credits) notFound();
     firstRealSeason = details.seasons.find((s) => s.season_number > 0) ?? details.seasons[0];
-    initialEpisodes = firstRealSeason
-      ? await tv.seasonEpisodes(numId, firstRealSeason.season_number)
-      : [];
+    if (firstRealSeason) {
+      const episodesResult = await tv.seasonEpisodes(numId, firstRealSeason.season_number);
+      if (!("error" in episodesResult)) initialEpisodes = episodesResult;
+    }
   } catch {
     notFound();
   }
+
+  if (!details || "error" in details || !credits || "error" in credits) notFound();
 
   return (
     <TvDetailView
