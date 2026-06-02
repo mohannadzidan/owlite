@@ -14,7 +14,7 @@ export default async function TvDetailPage({ params }: { params: Promise<{ id: s
   let initialEpisodes: TmdbEpisode[] = [];
 
   try {
-    [details, credits] = await Promise.all([tv.details(numId), tv.credits(numId)]);
+    [details, credits] = await Promise.all([tv.get(numId), tv.credits(numId)]);
     if (!details || "error" in details || !credits || "error" in credits) notFound();
     firstRealSeason = details.seasons.find((s) => s.season_number > 0) ?? details.seasons[0];
     if (firstRealSeason) {

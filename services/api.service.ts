@@ -18,20 +18,29 @@ export const tmdb = {
   discover: () => request<{ results: TmdbMedia[] }, "internal_error">("/api/tmdb/discover"),
 
   search: (query: string, options?: RequestInit) =>
-    request<{ results: TmdbMedia[] }, "internal_error">(
+    request<{ results: TmdbMedia[] }, "upstream_error">(
       `/api/tmdb/search?q=${encodeURIComponent(query)}`,
       options,
     ),
 
-  tvDetails: (id: number) => request<TmdbTvDetails, "internal_error">(`/api/tmdb/tv/${id}/seasons`),
-
   tvEpisodes: (id: number, season: number) =>
-    request<{ episodes: TmdbEpisode[] }, "internal_error">(
+    request<{ episodes: TmdbEpisode[] }, "upstream_error">(
       `/api/tmdb/tv/${id}/seasons?season=${season}`,
     ),
 
   tvSeries: (id: number) =>
-    request<TmdbSeriesDetails, "internal_error">(`/api/tmdb/tv/${id}/seasons`),
+    request<TmdbSeriesDetails, "upstream_error">(`/api/tmdb/tv/${id}/seasons`),
+
+  movieDetails: (id: number) => request<TmdbTvDetails, "upstream_error">(`/api/tmdb/movies/${id}`),
+  tvDetails: (id: number) => request<TmdbTvDetails, "upstream_error">(`/api/tmdb/tv/${id}`),
+  tv: {
+    get: (id: number) => request<TmdbTvDetails, "upstream_error">(`/api/tmdb/tv/${id}`),
+    imdbId: (id: number) => request<string, "upstream_error">(`/api/tmdb/tv/${id}/imdbId`),
+  },
+  movie: {
+    get: (id: number) => request<TmdbTvDetails, "upstream_error">(`/api/tmdb/movie/${id}`),
+    imdbId: (id: number) => request<string, "upstream_error">(`/api/tmdb/movie/${id}/imdbId`),
+  },
 };
 
 export const sources = {

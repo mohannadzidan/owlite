@@ -1,22 +1,35 @@
 "use client";
-
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import { PlayerControls } from "./player-controls";
-import { Player } from "./player";
-import { usePlayerStore, usePlayerStoreApi } from "./player-store";
-import FullScreenButton from "@/components/fullscreen-button";
-import { buildTitleId, TitleStorage } from "@/lib/player-storage";
-import { useShortcut, useShortcutScope, shortcutsScopes } from "@/lib/shortcuts";
-import type { PlayResponse, SubtitleTrack } from "@/lib/types";
+import SelectSourceDialog from "./select-source-page";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import useSWR from "swr";
 import { sources, tmdb } from "@/services/api.service";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import ErrorFallback from "@/components/error";
+import { errorThrower } from "@/services/request";
+import FullScreenSpinner from "@/components/fullscreen-spinner";
+import Player from "@/app/player/[type]/[id]/player";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { usePlayerStore, usePlayerStoreApi } from "@/app/player/[type]/[id]/player-store";
+import { PlayResponse, SubtitleTrack } from "@/lib/types";
+import { shortcutsScopes, useShortcut, useShortcutScope } from "@/lib/shortcuts";
+import { PlayerControls } from "@/app/player/[type]/[id]/player-controls";
+import { TitleStorage } from "@/lib/player-storage";
+import { ArrowLeft } from "lucide-react";
+import FullScreenButton from "@/components/fullscreen-button";
+import { paths } from "@/lib/paths";
 
-const HIDE_DELAY_MS = 1400;
-
-// ─── Inner UI — must be a child of <Player> to access the store ───────────────
-
-// ─── ProgressSaver ────────────────────────────────────────────────────────────
+interface PlayerUIProps {
+  title: string;
+  titleId: string | null;
+  imdbId?: string;
+  tmdbId?: number;
+  season?: number;
+  episode?: number;
+  nextSeason?: number;
+  nextEpisode?: number;
+  onNextEpisode?: () => void;
+}
 
 function ProgressSaver({ titleId }: { titleId: string }) {
   const playbackState = usePlayerStore((s) => s.playbackState);
@@ -68,33 +81,18 @@ function ProgressSaver({ titleId }: { titleId: string }) {
   return null;
 }
 
-// ─── Inner UI — must be a child of <Player> to access the store ───────────────
-
-interface PlayerUIProps {
-  title: string;
-  titleId: string | null;
-  imdbId?: string;
-  tmdbId?: number;
-  season?: number;
-  episode?: number;
-  sourceId?: string;
-  nextSeason?: number;
-  nextEpisode?: number;
-}
-
-function PlayerUI({
+export function PlayerUI({
   title,
   titleId,
   imdbId,
   tmdbId,
   season,
   episode,
-  sourceId,
   nextSeason,
   nextEpisode,
+  onNextEpisode,
 }: PlayerUIProps) {
-  const [controlsVisible, setControlsVisible] = useState(true);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useShortcutScope(shortcutsScopes.player);
   const router = useRouter();
   const togglePlay = usePlayerStore((s) => s.togglePlay);
   const skip = usePlayerStore((s) => s.skip);
@@ -107,64 +105,6 @@ function PlayerUI({
   const setSubtitleVerticalPosition = usePlayerStore((s) => s.setSubtitleVerticalPosition);
   const subtitleDelay = usePlayerStore((s) => s.subtitleDelay);
   const subtitleFontSize = usePlayerStore((s) => s.subtitleFontSize);
-  const handleNextEpisode = useCallback(async () => {
-    if (!nextSeason || !nextEpisode || !tmdbId || !sourceId) return;
-
-    let play: PlayResponse;
-    try {
-      const result = await sources.play({
-        source_id: sourceId,
-        tmdb_id: tmdbId,
-        media_type: "tv",
-        season: nextSeason,
-        episode: nextEpisode,
-        screenSize: window.screen.height,
-      });
-      if ("error" in result) throw result;
-      play = result;
-    } catch {
-      return;
-    }
-    const streamUrl = play.type === "hls" ? play.master_manifest_url : play.url;
-    if (!streamUrl) return;
-
-    const params = new URLSearchParams({
-      url: streamUrl,
-      title,
-      tmdb_id: String(tmdbId),
-      source_id: sourceId,
-      season: String(nextSeason),
-      episode: String(nextEpisode),
-    });
-
-    // Fetch series info to compute the next-next episode
-    const seriesResult = await tmdb.tvSeries(tmdbId).catch(() => null);
-    const seriesData = seriesResult && !("error" in seriesResult) ? seriesResult : null;
-    if (seriesData) {
-      const realSeasons = (seriesData.seasons ?? []).filter((s) => s.season_number > 0);
-      const currentSeasonInfo = realSeasons.find((s) => s.season_number === nextSeason);
-      if (currentSeasonInfo) {
-        if (nextEpisode < currentSeasonInfo.episode_count) {
-          params.set("next_season", String(nextSeason));
-          params.set("next_episode", String(nextEpisode + 1));
-        } else {
-          const idx = realSeasons.findIndex((s) => s.season_number === nextSeason);
-          if (idx !== -1 && idx < realSeasons.length - 1) {
-            params.set("next_season", String(realSeasons[idx + 1].season_number));
-            params.set("next_episode", "1");
-          }
-        }
-      }
-    }
-
-    router.push(`/player?${params}`);
-  }, [nextSeason, nextEpisode, tmdbId, sourceId, title, router]);
-
-  const showControls = useCallback(() => {
-    setControlsVisible(true);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => setControlsVisible(false), HIDE_DELAY_MS);
-  }, []);
 
   const handleQualityChange = useCallback(
     (level: number) => {
@@ -186,23 +126,12 @@ function PlayerUI({
     setActiveExternalTrackId(null);
   }, [setActiveExternalTrackId, setExternalSubtitleUrl]);
 
-  // Start the initial hide timer on mount
-  useEffect(() => {
-    showControls();
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [showControls]);
-
-  useShortcutScope(shortcutsScopes.player);
-
   useShortcut(shortcutsScopes.player, "player.togglePlay", (e) => {
     e.preventDefault();
     togglePlay();
   });
 
   useShortcut(shortcutsScopes.player, "player.skipBackward", (e) => {
-    // Let the focused progress bar slider handle its own ArrowLeft seek
     e.preventDefault();
     skip(-10);
   });
@@ -213,18 +142,17 @@ function PlayerUI({
   });
 
   useShortcut(shortcutsScopes.player, "player.nextEpisode", (e) => {
-    console.log("Next episode shortcut triggered");
     e.preventDefault();
-    handleNextEpisode?.();
+    onNextEpisode?.();
   });
 
   useShortcut(shortcutsScopes.player, "player.subtitlesDelayIncrease", (e) => {
     e.preventDefault();
     setSubtitleDelay(Math.round((subtitleDelay + 0.5) * 10) / 10);
   });
+
   useShortcut(shortcutsScopes.player, "player.subtitlesDelayDecrease", (e) => {
     e.preventDefault();
-
     setSubtitleDelay(Math.round((subtitleDelay - 0.5) * 10) / 10);
   });
 
@@ -237,27 +165,11 @@ function PlayerUI({
     e.preventDefault();
     setSubtitleFontSize(Math.min(200, subtitleFontSize + 5));
   });
-  // Show controls on any keydown or mouse move
-  useEffect(() => {
-    document.addEventListener("mousemove", showControls);
-    return () => {
-      document.removeEventListener("mousemove", showControls);
-    };
-  }, [showControls]);
 
   return (
     <>
       {titleId && <ProgressSaver titleId={titleId} />}
-      <PlayerControls
-        className={[
-          "transition-opacity duration-300",
-          controlsVisible
-            ? "opacity-100 cursor-default"
-            : "opacity-0 pointer-events-none cursor-none",
-        ].join(" ")}
-        onMouseMove={showControls}
-        onClick={showControls}
-      >
+      <PlayerControls>
         {/* Semi-transparent gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/60 pointer-events-none" />
 
@@ -314,7 +226,7 @@ function PlayerUI({
             {nextSeason && nextEpisode && (
               <PlayerControls.NextEpisode
                 className="text-white text-sm font-medium opacity-90 hover:opacity-100 transition-opacity"
-                onNext={handleNextEpisode}
+                onNext={onNextEpisode}
               >
                 Next episode
               </PlayerControls.NextEpisode>
@@ -326,50 +238,168 @@ function PlayerUI({
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+export default function Page() {
+  const searchPrams = useSearchParams();
+  const router = useRouter();
+  const { type, id } = useParams<{ type: "tv" | "movie"; id: string }>();
+  const season = searchPrams.get("season") ?? undefined;
+  const episode = searchPrams.get("episode") ?? undefined;
+  const sourceId = searchPrams.get("source") ?? undefined;
+  const isTitleParametersOk = (type === "tv" && season && episode) || type === "movie";
+  const playResponse = useSWR(
+    sourceId && isTitleParametersOk ? [sourceId, type, id, season, episode] : null,
+    () =>
+      errorThrower(
+        sources.play({
+          source_id: sourceId!,
+          tmdb_id: parseInt(id),
+          media_type: type!,
+          screenSize: Math.min(window.screen.width, window.screen.height),
+          episode: episode ? parseInt(episode) : undefined,
+          season: season ? parseInt(season) : undefined,
+        }),
+      ),
+    { revalidateOnFocus: false },
+  );
 
-export default function PlayerPage() {
-  const searchParams = useSearchParams();
-  const url = decodeURIComponent(searchParams.get("url") ?? "");
-  // const url = "https://test-streams.mux.dev/x36xhzz/url_6/193039199_mp4_h264_aac_hq_7.m3u8"; // 480p only
-  // const url = "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"; //decodeURIComponent(searchParams.get("url") ?? "");
-  const title = decodeURIComponent(searchParams.get("title") ?? "");
-  const imdbId = searchParams.get("imdb_id") ?? undefined;
-  const tmdbId = searchParams.get("tmdb_id") ? Number(searchParams.get("tmdb_id")) : undefined;
-  const season = searchParams.get("season") ? Number(searchParams.get("season")) : undefined;
-  const episode = searchParams.get("episode") ? Number(searchParams.get("episode")) : undefined;
-  const sourceId = searchParams.get("source_id") ?? undefined;
-  const nextSeason = searchParams.get("next_season")
-    ? Number(searchParams.get("next_season"))
-    : undefined;
-  const nextEpisode = searchParams.get("next_episode")
-    ? Number(searchParams.get("next_episode"))
-    : undefined;
-  const titleId = buildTitleId(tmdbId, season, episode);
+  const movieTitleResponse = useSWR(
+    type === "movie" ? [type, id, season, episode] : null,
+    () => errorThrower(tmdb.movie.get(Number(id))),
+    { revalidateOnFocus: false },
+  );
 
-  if (!url) return <p className="text-muted-foreground">No video URL provided.</p>;
+  const tvTitleResponse = useSWR(
+    type === "tv" ? [type, id, season, episode] : null,
+    () => errorThrower(tmdb.tv.get(Number(id))),
+    { revalidateOnFocus: false },
+  );
+
+  const imdbIdResponse = useSWR(
+    isTitleParametersOk ? [type, id, season, episode, "imdbId"] : null,
+    () =>
+      errorThrower(type === "movie" ? tmdb.movie.imdbId(Number(id)) : tmdb.tv.imdbId(Number(id))),
+    { revalidateOnFocus: false },
+  );
+
+  useEffect(() => {
+    document.body.classList.add("overflow-hidden");
+    return () => {
+      document.body.classList.remove("overflow-hidden");
+    };
+  }, []);
+  if (
+    !isTitleParametersOk ||
+    playResponse.error ||
+    tvTitleResponse.error ||
+    movieTitleResponse.error
+  ) {
+    return (
+      <div className="h-full w-full flex flex-col justify-center items-center">
+        <ErrorFallback
+          title="Something went wrong"
+          message="Unexpected error occurred, please try again later."
+        >
+          <Button>
+            <Link href="/">Go back</Link>
+          </Button>
+        </ErrorFallback>
+      </div>
+    );
+  }
+  if (!sourceId)
+    return <SelectSourceDialog type={type} season={season} episode={episode} id={id} />;
+
+  if (
+    tvTitleResponse.isLoading ||
+    movieTitleResponse.isLoading ||
+    playResponse.isLoading ||
+    imdbIdResponse.isLoading
+  ) {
+    return <FullScreenSpinner className="bg-black" />;
+  }
+
+  const streamUrl =
+    playResponse.data!.type === "hls"
+      ? playResponse.data!.master_manifest_url
+      : playResponse.data!.url;
+  const title = type === "movie" ? movieTitleResponse.data!.name : tvTitleResponse.data!.name;
+  const titleId = type === "movie" ? movieTitleResponse.data!.id : tvTitleResponse.data!.id;
+  const tmdbId = type === "movie" ? movieTitleResponse.data!.id : tvTitleResponse.data!.id;
+  const seasons =
+    tvTitleResponse.data?.seasons
+      .filter((s) => s.season_number > 0)
+      .sort((a, b) => a.season_number - b.season_number) ?? [];
+  const nextSeason =
+    type === "tv" && season && episode && seasons.length !== Number(season)
+      ? Number(season) + 1
+      : undefined;
+  const lastEpisodeOfSeason =
+    type === "tv" &&
+    !!season &&
+    !!episode &&
+    Number(episode) === seasons[Number(season) - 1].episode_count;
+  const lastEpisodeOfSeries =
+    type === "tv" &&
+    !!season &&
+    !!episode &&
+    lastEpisodeOfSeason &&
+    Number(season) === seasons.length;
+  const nextEpisode =
+    type === "tv" && season && episode && !lastEpisodeOfSeries
+      ? lastEpisodeOfSeason
+        ? 1
+        : Number(episode) + 1
+      : undefined;
+
+  const nextEpisodeHandler = () => {
+    if (lastEpisodeOfSeries || !nextEpisode || type !== "tv" || !episode || !season) return;
+
+    if (lastEpisodeOfSeason && !lastEpisodeOfSeries) {
+      return router.replace(
+        paths.player(type as "tv", id, {
+          episode: "1",
+          season: nextSeason!.toString(),
+          source: sourceId,
+        }),
+      );
+    }
+    if (lastEpisodeOfSeason) {
+      return router.replace(
+        paths.player(type as "tv", id, {
+          episode: "1",
+          season: ((nextSeason || 1) + 1)!.toString(),
+          source: sourceId,
+        }),
+      );
+    }
+    router.replace(
+      paths.player(type as "tv", id, {
+        episode: nextEpisode.toString(),
+        season,
+        source: sourceId,
+      }),
+    );
+  };
 
   return (
-    <main className="h-screen w-screen overflow-hidden">
-      <Player
-        src={url}
-        className="w-full h-full bg-black"
-        maxRecoveryAttempts={3}
-        onFatalError={(err) => console.error("Fatal HLS error", err)}
-        autoPlay
-      >
-        <PlayerUI
-          title={title}
-          titleId={titleId}
-          imdbId={imdbId}
-          tmdbId={tmdbId}
-          season={season}
-          episode={episode}
-          sourceId={sourceId}
-          nextSeason={nextSeason}
-          nextEpisode={nextEpisode}
-        />
-      </Player>
-    </main>
+    <Player
+      src={streamUrl}
+      className="w-screen h-screen bg-black"
+      maxRecoveryAttempts={3}
+      onFatalError={(err) => console.error("Fatal HLS error", err)}
+      autoPlay
+    >
+      <PlayerUI
+        title={title}
+        titleId={titleId.toString()}
+        imdbId={imdbIdResponse.data ?? tmdbId.toString()}
+        tmdbId={tmdbId}
+        season={Number(season)}
+        episode={Number(episode)}
+        nextSeason={nextSeason}
+        nextEpisode={nextEpisode}
+        onNextEpisode={nextEpisodeHandler}
+      />
+    </Player>
   );
 }

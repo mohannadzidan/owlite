@@ -31,7 +31,15 @@ export type ErrorResponse<C extends string = string> = {
   };
 };
 
-function isErrorResponse<C extends string>(data: unknown): data is ErrorResponse<C> {
+export type InferErrorResponse<R> =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  R extends (...args: any[]) => infer U
+    ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      Extract<Awaited<U>, ErrorResponse<any>>
+    : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      Extract<Awaited<R>, ErrorResponse<any>>;
+
+export function isErrorResponse<C extends string>(data: unknown): data is ErrorResponse<C> {
   return (
     typeof data === "object" &&
     data !== null &&
@@ -45,7 +53,9 @@ function isErrorResponse<C extends string>(data: unknown): data is ErrorResponse
   );
 }
 
-export async function errorThrower<T>(promise: Promise<T>): Promise<T> {
+export async function errorThrower<T, C extends string>(
+  promise: Promise<T | ErrorResponse<C>>,
+): Promise<T> {
   const result = await promise;
   if (isErrorResponse(result)) {
     throw result;

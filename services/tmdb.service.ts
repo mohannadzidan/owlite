@@ -60,7 +60,7 @@ export const search = {
 };
 
 export const movies = {
-  details: (id: number) =>
+  get: (id: number) =>
     request<TmdbMovieDetails>(`/movie/${id}`, { next: { revalidate: TTL.details } }),
 
   credits: (id: number) =>
@@ -76,7 +76,7 @@ export const movies = {
 };
 
 export const tv = {
-  details: (id: number) =>
+  get: (id: number) =>
     request<TmdbTvDetails>(`/tv/${id}`, { next: { revalidate: TTL.details } }),
 
   credits: (id: number) =>

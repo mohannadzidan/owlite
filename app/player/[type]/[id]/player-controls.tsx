@@ -1,13 +1,19 @@
+"use client";
+
 import { ComponentProps, useEffect, useRef, useState } from "react";
 import { Play, Pause, RotateCcw, RotateCw, SkipForward, Subtitles, Settings } from "lucide-react";
 import { usePlayerStore } from "./player-store";
 import { SubtitlesPanel } from "./subtitles-panel";
 import type { SubtitleTrack } from "@/lib/types";
+import { twMerge } from "tailwind-merge";
+import clsx, { ClassValue } from "clsx";
+
+const HIDE_DELAY_MS = 1400;
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
 
-function cn(...classes: (string | undefined | false | null)[]) {
-  return classes.filter(Boolean).join(" ");
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
 }
 
 function formatTime(seconds: number): string {
@@ -22,9 +28,31 @@ function formatTime(seconds: number): string {
 // ─── PlayerControls (root overlay) ───────────────────────────────────────────
 
 function PlayerControls({ className, children, style, ...props }: ComponentProps<"div">) {
+  const [controlsVisible, setControlsVisible] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Show controls on any keydown or mouse move
+  useEffect(() => {
+    const showControls = () => {
+      setControlsVisible(true);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setControlsVisible(false), HIDE_DELAY_MS);
+    };
+    document.addEventListener("mousemove", showControls);
+    // Start the initial hide timer on mount
+    showControls();
+    return () => {
+      document.removeEventListener("mousemove", showControls);
+    };
+  }, []);
+
   return (
     <div
-      className={cn("player-controls-overlay z-10", className)}
+      className={cn(
+        "player-controls-overlay z-10 transition-opacity duration-300 opacity-100 cursor-default",
+        !controlsVisible && "opacity-0 pointer-events-none cursor-none",
+        className,
+      )}
       style={{
         position: "absolute",
         top: 0,

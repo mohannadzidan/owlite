@@ -25,6 +25,7 @@ import type {
 } from "@/lib/types";
 import { sources as sourcesApi, tmdb } from "@/services/api.service";
 import ErrorFallback from "@/components/error";
+import { paths } from "@/lib/paths";
 
 const BACKDROP = "https://image.tmdb.org/t/p/w1280";
 const STILL = "https://image.tmdb.org/t/p/w185";
@@ -324,7 +325,13 @@ export function TvDetailView({
           }
         }
       }
-      router.push(`/player?${params}`);
+      router.push(
+        paths.player("tv" as const, tmdbId.toString(), {
+          episode: selectedEpisode!.episode_number,
+          season: selectedEpisode!.season_number,
+          source: sourceId,
+        }),
+      );
     },
     [tmdbId, selectedEpisode, router, tvDetails.name, tvDetails.seasons, episodes],
   );

@@ -11,7 +11,7 @@ export default async function MovieDetailPage({ params }: { params: Promise<{ id
   let credits;
 
   try {
-    [details, credits] = await Promise.all([movies.details(numId), movies.credits(numId)]);
+    [details, credits] = await Promise.all([movies.get(numId), movies.credits(numId)]);
   } catch {
     notFound();
   }

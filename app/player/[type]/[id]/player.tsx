@@ -233,7 +233,7 @@ export function Player({
     <PlayerStoreContext.Provider value={store}>
       <div
         className={className}
-        style={{ position: "relative", display: "inline-block", lineHeight: 0 }}
+        style={{ position: "relative", display: "inline-block", top: 0, left: 0 }}
       >
         {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
         <video
