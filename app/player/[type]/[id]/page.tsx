@@ -248,18 +248,20 @@ export default function Page() {
   const sourceId = searchPrams.get("source") ?? undefined;
   const isTitleParametersOk = (type === "tv" && season && episode) || type === "movie";
   const movieTitleResponse = useSWR(
-    type === "movie" ? [type, id, season, episode] : null,
+    type === "movie" ? ["tmdb.movies.details", id] : null,
     () => tmdb.movies.details(Number(id), ["external_ids"]),
     { revalidateOnFocus: false },
   );
 
   const tvTitleResponse = useSWR(
-    type === "tv" ? [type, id, season, episode] : null,
+    type === "tv" ? ["tmdb.tvShows.details", id] : null,
     () => tmdb.tvShows.details(Number(id), ["external_ids"]),
     { revalidateOnFocus: false },
   );
   const playResponse = useSWR(
-    sourceId && isTitleParametersOk && movieTitleResponse.data && tvTitleResponse.data
+    sourceId &&
+      isTitleParametersOk &&
+      (type === "movie" ? movieTitleResponse.data : tvTitleResponse.data)
       ? [sourceId, type, id, season, episode]
       : null,
     () =>
@@ -285,11 +287,21 @@ export default function Page() {
       document.body.classList.remove("overflow-hidden");
     };
   }, []);
+
+  if (!sourceId)
+    return <SelectSourceDialog type={type} season={season} episode={episode} id={id} />;
+
+  if (tvTitleResponse.isLoading || movieTitleResponse.isLoading || playResponse.isLoading) {
+    return <FullScreenSpinner className="bg-black" />;
+  }
+
   if (
     !isTitleParametersOk ||
     playResponse.error ||
     tvTitleResponse.error ||
-    movieTitleResponse.error
+    movieTitleResponse.error ||
+    (!movieTitleResponse.data && !tvTitleResponse.data) ||
+    !playResponse.data
   ) {
     return (
       <div className="h-full w-full flex flex-col justify-center items-center">
@@ -303,12 +315,6 @@ export default function Page() {
         </ErrorFallback>
       </div>
     );
-  }
-  if (!sourceId)
-    return <SelectSourceDialog type={type} season={season} episode={episode} id={id} />;
-
-  if (tvTitleResponse.isLoading || movieTitleResponse.isLoading || playResponse.isLoading) {
-    return <FullScreenSpinner className="bg-black" />;
   }
 
   const streamUrl =
