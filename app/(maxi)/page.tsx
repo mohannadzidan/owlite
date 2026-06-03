@@ -7,9 +7,10 @@ import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { TmdbMedia } from "@/lib/types";
-import { tmdb } from "@/services/api.service";
+import { tmdb } from "@/services/tmdb.service";
+import { Movie, MovieWithMediaType, TVWithMediaType, TV } from "tmdb-ts";
 
+type TrendingItem = (Movie & { media_type: "movie" }) | (TV & { media_type: "tv" });
 const TMDB_IMAGE = "https://image.tmdb.org/t/p/w342";
 
 function useDebounce<T>(value: T, delay: number): T {
@@ -21,9 +22,9 @@ function useDebounce<T>(value: T, delay: number): T {
   return debounced;
 }
 
-function PosterCard({ item }: { item: TmdbMedia }) {
+function PosterCard({ item }: { item: TrendingItem }) {
   const router = useRouter();
-  const title = item.title ?? item.name ?? "Untitled";
+  const title = ("title" in item ? item.title : item.name) ?? "Untitled";
   const posterUrl = item.poster_path ? `${TMDB_IMAGE}${item.poster_path}` : null;
 
   return (
@@ -75,7 +76,7 @@ function MediaRow({
   loading,
 }: {
   title: string;
-  items: TmdbMedia[];
+  items: (MovieWithMediaType | TVWithMediaType)[];
   loading: boolean;
 }) {
   return (
@@ -99,7 +100,7 @@ export default function HomePage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { data: discoverData, isLoading: discoverLoading } = useSWR("tmdb-discover", async () => {
-    const result = await tmdb.discover();
+    const result = await tmdb.trending.trending("all", "day");
     if ("error" in result) throw result;
     return result;
   });
@@ -108,22 +109,23 @@ export default function HomePage() {
   const { data: searchData, isLoading: searchLoading } = useSWR(
     trimmedQuery ? ["tmdb-search", trimmedQuery] : null,
     async ([, q]) => {
-      const result = await tmdb.search(q);
-      if ("error" in result) throw result;
-      return result;
+      const result = await tmdb.search.multi({
+        query: q,
+      });
+      return result.results.filter((a) => a.media_type === "movie" || a.media_type === "tv");
     },
   );
 
   const allResults = discoverData?.results ?? [];
   const movies = allResults.filter((r) => r.media_type === "movie");
   const series = allResults.filter((r) => r.media_type === "tv");
-  const searchResults = searchData?.results ?? [];
+  const searchResults = searchData ?? [];
   const isSearching = query.trim().length > 0;
 
   return (
     <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
       {/* Header */}
-      <header className="relative flex h-16 flex-shrink-0 items-center justify-center px-8">
+      <header className="relative flex h-16 flex-shrink-0 items-center justify-center px-8 z-10">
         <div className="w-full max-w-md">
           <div className="border-input bg-input/60 focus-within:border-primary/60 flex items-center gap-2 rounded-full border px-4 py-2.5 backdrop-blur-sm transition-colors">
             <SearchIcon className="text-muted-foreground h-4 w-4 flex-shrink-0" />

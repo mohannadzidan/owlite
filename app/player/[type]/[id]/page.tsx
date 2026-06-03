@@ -2,22 +2,23 @@
 import SelectSourceDialog from "./select-source-page";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
-import { sources, tmdb } from "@/services/api.service";
+import { sources } from "@/services/api.service";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import ErrorFallback from "@/components/error";
 import { errorThrower } from "@/services/request";
 import FullScreenSpinner from "@/components/fullscreen-spinner";
 import Player from "@/app/player/[type]/[id]/player";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { usePlayerStore, usePlayerStoreApi } from "@/app/player/[type]/[id]/player-store";
-import { PlayResponse, SubtitleTrack } from "@/lib/types";
+import { SubtitleTrack } from "@/lib/types";
 import { shortcutsScopes, useShortcut, useShortcutScope } from "@/lib/shortcuts";
 import { PlayerControls } from "@/app/player/[type]/[id]/player-controls";
 import { TitleStorage } from "@/lib/player-storage";
 import { ArrowLeft } from "lucide-react";
 import FullScreenButton from "@/components/fullscreen-button";
 import { paths } from "@/lib/paths";
+import { tmdb } from "@/services/tmdb.service";
 
 interface PlayerUIProps {
   title: string;
@@ -246,38 +247,35 @@ export default function Page() {
   const episode = searchPrams.get("episode") ?? undefined;
   const sourceId = searchPrams.get("source") ?? undefined;
   const isTitleParametersOk = (type === "tv" && season && episode) || type === "movie";
+  const movieTitleResponse = useSWR(
+    type === "movie" ? [type, id, season, episode] : null,
+    () => tmdb.movies.details(Number(id), ["external_ids"]),
+    { revalidateOnFocus: false },
+  );
+
+  const tvTitleResponse = useSWR(
+    type === "tv" ? [type, id, season, episode] : null,
+    () => tmdb.tvShows.details(Number(id), ["external_ids"]),
+    { revalidateOnFocus: false },
+  );
   const playResponse = useSWR(
-    sourceId && isTitleParametersOk ? [sourceId, type, id, season, episode] : null,
+    sourceId && isTitleParametersOk && movieTitleResponse.data && tvTitleResponse.data
+      ? [sourceId, type, id, season, episode]
+      : null,
     () =>
       errorThrower(
         sources.play({
           source_id: sourceId!,
-          tmdb_id: parseInt(id),
+          imdb_id:
+            type === "movie"
+              ? movieTitleResponse.data!.external_ids.imdb_id!
+              : tvTitleResponse.data!.external_ids.imdb_id!,
           media_type: type!,
           screenSize: Math.min(window.screen.width, window.screen.height),
           episode: episode ? parseInt(episode) : undefined,
           season: season ? parseInt(season) : undefined,
         }),
       ),
-    { revalidateOnFocus: false },
-  );
-
-  const movieTitleResponse = useSWR(
-    type === "movie" ? [type, id, season, episode] : null,
-    () => errorThrower(tmdb.movie.get(Number(id))),
-    { revalidateOnFocus: false },
-  );
-
-  const tvTitleResponse = useSWR(
-    type === "tv" ? [type, id, season, episode] : null,
-    () => errorThrower(tmdb.tv.get(Number(id))),
-    { revalidateOnFocus: false },
-  );
-
-  const imdbIdResponse = useSWR(
-    isTitleParametersOk ? [type, id, season, episode, "imdbId"] : null,
-    () =>
-      errorThrower(type === "movie" ? tmdb.movie.imdbId(Number(id)) : tmdb.tv.imdbId(Number(id))),
     { revalidateOnFocus: false },
   );
 
@@ -309,12 +307,7 @@ export default function Page() {
   if (!sourceId)
     return <SelectSourceDialog type={type} season={season} episode={episode} id={id} />;
 
-  if (
-    tvTitleResponse.isLoading ||
-    movieTitleResponse.isLoading ||
-    playResponse.isLoading ||
-    imdbIdResponse.isLoading
-  ) {
+  if (tvTitleResponse.isLoading || movieTitleResponse.isLoading || playResponse.isLoading) {
     return <FullScreenSpinner className="bg-black" />;
   }
 
@@ -322,9 +315,13 @@ export default function Page() {
     playResponse.data!.type === "hls"
       ? playResponse.data!.master_manifest_url
       : playResponse.data!.url;
-  const title = type === "movie" ? movieTitleResponse.data!.name : tvTitleResponse.data!.name;
+  const title = type === "movie" ? movieTitleResponse.data!.title : tvTitleResponse.data!.name;
   const titleId = type === "movie" ? movieTitleResponse.data!.id : tvTitleResponse.data!.id;
   const tmdbId = type === "movie" ? movieTitleResponse.data!.id : tvTitleResponse.data!.id;
+  const imdbId =
+    type === "movie"
+      ? movieTitleResponse.data!.external_ids.imdb_id
+      : tvTitleResponse.data!.external_ids.imdb_id;
   const seasons =
     tvTitleResponse.data?.seasons
       .filter((s) => s.season_number > 0)
@@ -392,7 +389,7 @@ export default function Page() {
       <PlayerUI
         title={title}
         titleId={titleId.toString()}
-        imdbId={imdbIdResponse.data ?? tmdbId.toString()}
+        imdbId={imdbId}
         tmdbId={tmdbId}
         season={Number(season)}
         episode={Number(episode)}

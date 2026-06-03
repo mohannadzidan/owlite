@@ -10,6 +10,7 @@ function player(
   id: string,
   options: { season?: string | number; episode?: string | number; source?: string },
 ): string;
+
 function player(type: string, id: string, options: Record<string, string | number> = {}): string {
   return `/player/${type}/${id}?${q(options)}`;
 }

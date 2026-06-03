@@ -47,6 +47,9 @@ const config: Config = {
         sans: ["var(--font-sans)", "sans-serif"],
         heading: ["var(--font-heading)", "var(--font-sans)", "sans-serif"],
       },
+      fontSize:{
+        "2xs": "0.625rem",
+      },
       borderRadius: {
         sm: "var(--radius-sm)",
         md: "var(--radius-md)",

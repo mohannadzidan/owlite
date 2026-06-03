@@ -3,45 +3,15 @@ import type {
   PlayResponse,
   ResolveParams,
   SubtitleTrack,
-  TmdbEpisode,
-  TmdbMedia,
-  TmdbSeriesDetails,
-  TmdbTvDetails,
   VideoSource,
 } from "@/lib/types";
+
 import type { ClientErrorPayload, ClientLogPayload } from "@/lib/observability";
 import { request } from "./request";
 
+
 export { request };
 
-export const tmdb = {
-  discover: () => request<{ results: TmdbMedia[] }, "internal_error">("/api/tmdb/discover"),
-
-  search: (query: string, options?: RequestInit) =>
-    request<{ results: TmdbMedia[] }, "upstream_error">(
-      `/api/tmdb/search?q=${encodeURIComponent(query)}`,
-      options,
-    ),
-
-  tvEpisodes: (id: number, season: number) =>
-    request<{ episodes: TmdbEpisode[] }, "upstream_error">(
-      `/api/tmdb/tv/${id}/seasons?season=${season}`,
-    ),
-
-  tvSeries: (id: number) =>
-    request<TmdbSeriesDetails, "upstream_error">(`/api/tmdb/tv/${id}/seasons`),
-
-  movieDetails: (id: number) => request<TmdbTvDetails, "upstream_error">(`/api/tmdb/movies/${id}`),
-  tvDetails: (id: number) => request<TmdbTvDetails, "upstream_error">(`/api/tmdb/tv/${id}`),
-  tv: {
-    get: (id: number) => request<TmdbTvDetails, "upstream_error">(`/api/tmdb/tv/${id}`),
-    imdbId: (id: number) => request<string, "upstream_error">(`/api/tmdb/tv/${id}/imdbId`),
-  },
-  movie: {
-    get: (id: number) => request<TmdbTvDetails, "upstream_error">(`/api/tmdb/movie/${id}`),
-    imdbId: (id: number) => request<string, "upstream_error">(`/api/tmdb/movie/${id}/imdbId`),
-  },
-};
 
 export const sources = {
   list: (tmdbId: number, mediaType: "movie" | "tv") =>

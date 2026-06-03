@@ -20,11 +20,13 @@ export async function POST(request: NextRequest) {
     );
 
   const result = await source.resolve({ ...resolveParams, userAgent });
-  if (!result)
+  if (!result) {
+    console.error(`Source ${source_id} could not resolve media with params:`, resolveParams, result);
     return NextResponse.json(
       { error: { code: "could_not_resolve", message: "Source could not resolve media" } },
       { status: 422 },
     );
+  }
 
   return NextResponse.json(result);
 }

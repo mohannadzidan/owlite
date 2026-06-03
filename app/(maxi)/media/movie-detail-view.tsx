@@ -7,9 +7,10 @@ import { BookmarkIcon, EyeIcon, FilmIcon, PlayIcon, Share2Icon } from "lucide-re
 import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { PlayResponse, TmdbCredits, TmdbMovieDetails } from "@/lib/types";
+import type { PlayResponse } from "@/lib/types";
 import { sources as sourcesApi } from "@/services/api.service";
 import ErrorFallback from "@/components/error";
+import { Credits, MovieDetails } from "tmdb-ts";
 
 const BACKDROP = "https://image.tmdb.org/t/p/w1280";
 
@@ -21,8 +22,8 @@ interface SourceInfo {
 
 type Props = {
   tmdbId: number;
-  movieDetails: TmdbMovieDetails;
-  credits: TmdbCredits;
+  movieDetails: MovieDetails;
+  credits: Credits;
 };
 
 function Pill({ label }: { label: string }) {
@@ -107,7 +108,7 @@ export function MovieDetailView({ tmdbId, movieDetails, credits }: Props) {
       try {
         const result = await sourcesApi.play({
           source_id: sourceId,
-          tmdb_id: tmdbId,
+          imdb_id: movieDetails.imdb_id!,
           media_type: "movie",
           screenSize: window.screen.height,
         });

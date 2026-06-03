@@ -1,108 +1,95 @@
-import type {
-  TmdbCredits,
-  TmdbEpisode,
-  TmdbMedia,
-  TmdbMovieDetails,
-  TmdbSeason,
-  TmdbSeriesDetails,
-  TmdbTvDetails,
-} from "@/lib/types";
-import { request as requestFn } from "./request";
+import { TMDB } from "tmdb-ts";
 
-const BASE = "https://api.themoviedb.org/3";
-
-const TTL = {
-  discover: 60 * 60 * 24,
-  search: 60 * 60,
-  details: 60 * 60 * 24 * 30,
+const config = {
+  change_keys: [
+    "adult",
+    "air_date",
+    "also_known_as",
+    "alternative_titles",
+    "biography",
+    "birthday",
+    "budget",
+    "cast",
+    "certifications",
+    "character_names",
+    "created_by",
+    "crew",
+    "deathday",
+    "episode",
+    "episode_number",
+    "episode_run_time",
+    "freebase_id",
+    "freebase_mid",
+    "general",
+    "genres",
+    "guest_stars",
+    "homepage",
+    "images",
+    "imdb_id",
+    "languages",
+    "name",
+    "network",
+    "origin_country",
+    "original_name",
+    "original_title",
+    "overview",
+    "parts",
+    "place_of_birth",
+    "plot_keywords",
+    "production_code",
+    "production_companies",
+    "production_countries",
+    "releases",
+    "revenue",
+    "runtime",
+    "season",
+    "season_number",
+    "season_regular",
+    "softcore",
+    "spoken_languages",
+    "status",
+    "tagline",
+    "title",
+    "translations",
+    "tvdb_id",
+    "tvrage_id",
+    "type",
+    "video",
+    "videos",
+  ],
+  images: {
+    base_url: "http://image.tmdb.org/t/p/",
+    secure_base_url: "https://image.tmdb.org/t/p/",
+    backdrop_sizes: ["w300", "w780", "w1280", "original"],
+    logo_sizes: ["w45", "w92", "w154", "w185", "w300", "w500", "original"],
+    poster_sizes: ["w92", "w154", "w185", "w342", "w500", "w780", "original"],
+    profile_sizes: ["w45", "w185", "h632", "original"],
+    still_sizes: ["w92", "w185", "w300", "original"],
+  },
 } as const;
 
-function authHeaders() {
-  const key = process.env.TMDB_API_KEY;
-  if (!key) throw new Error("TMDB_API_KEY is not set");
-  return { Authorization: `Bearer ${key}`, Accept: "application/json" };
-}
+export const tmdb = new TMDB(process.env.TMDB_API_KEY!, {
+  fetch: (input, init) => {
+    // alter url, to route it to /tmdb/* in client side, leave it as is in server side
+    if (typeof window === "undefined") {
+      // server side, call TMDB API directly
+      return fetch(input, init);
+    }
+    const oldRequest =
+      typeof input === "string" || input instanceof URL
+        ? new Request(input, init)
+        : input instanceof Request
+          ? input
+          : null;
+    if (!oldRequest) throw new Error("Invalid input to fetch");
+    const url = new URL(oldRequest.url);
 
-const request = <T>(path: string, init?: RequestInit) =>
-  requestFn<T>(`${BASE}${path}`, { headers: authHeaders(), ...init });
-
-interface TmdbListResponse {
-  results: TmdbMedia[];
-}
-
-export const discover = {
-  trending: async () => {
-    const [moviesRes, tvRes] = await Promise.all([
-      request<TmdbListResponse>("/trending/movie/week", { next: { revalidate: TTL.discover } }),
-      request<TmdbListResponse>("/trending/tv/week", { next: { revalidate: TTL.discover } }),
-    ]);
-    if ("error" in moviesRes) return moviesRes;
-    if ("error" in tvRes) return tvRes;
-    return [
-      ...(moviesRes.results ?? []).map((m) => ({ ...m, media_type: "movie" as const })),
-      ...(tvRes.results ?? []).map((t) => ({ ...t, media_type: "tv" as const })),
-    ] as TmdbMedia[];
+    return fetch("/api/proxy/tmdb" + url.pathname + url.search, oldRequest);
   },
-};
+});
 
-export const search = {
-  multi: async (query: string) => {
-    if (!query.trim()) return [] as TmdbMedia[];
-    const data = await request<TmdbListResponse>(
-      `/search/multi?query=${encodeURIComponent(query)}&include_adult=false`,
-      { next: { revalidate: TTL.search } },
-    );
-    if ("error" in data) return data;
-    return (data.results ?? []).filter(
-      (r): r is TmdbMedia => r.media_type === "movie" || r.media_type === "tv",
-    );
-  },
-};
-
-export const movies = {
-  get: (id: number) =>
-    request<TmdbMovieDetails>(`/movie/${id}`, { next: { revalidate: TTL.details } }),
-
-  credits: (id: number) =>
-    request<TmdbCredits>(`/movie/${id}/credits`, { next: { revalidate: TTL.details } }),
-
-  imdbId: async (id: number) => {
-    const data = await request<{ imdb_id: string | null }>(`/movie/${id}/external_ids`, {
-      next: { revalidate: TTL.details },
-    });
-    if ("error" in data) return data;
-    return data.imdb_id;
-  },
-};
-
-export const tv = {
-  get: (id: number) =>
-    request<TmdbTvDetails>(`/tv/${id}`, { next: { revalidate: TTL.details } }),
-
-  credits: (id: number) =>
-    request<TmdbCredits>(`/tv/${id}/credits`, { next: { revalidate: TTL.details } }),
-
-  series: async (id: number) => {
-    const data = await request<{ id: number; name: string; seasons: TmdbSeason[] }>(`/tv/${id}`, {
-      next: { revalidate: TTL.details },
-    });
-    if ("error" in data) return data;
-    return { id: data.id, name: data.name, seasons: data.seasons ?? [] } as TmdbSeriesDetails;
-  },
-
-  seasonEpisodes: async (seriesId: number, season: number) => {
-    const data = await request<{ episodes: TmdbEpisode[] }>(`/tv/${seriesId}/season/${season}`, {
-      next: { revalidate: TTL.details },
-    });
-    if ("error" in data) return data;
-    return (data.episodes ?? []) as TmdbEpisode[];
-  },
-
-  imdbId: async (id: number) => {
-    const data = await request<{ imdb_id: string | null }>(`/tv/${id}/external_ids`, {
-      next: { revalidate: TTL.details },
-    });
-    if ("error" in data) return data;
-    return data.imdb_id;
-  },
-};
+export const tmdbImageUrl = <T extends "backdrop" | "logo" | "poster" | "profile" | "still">(
+  type: T,
+  size: (typeof config.images)[`${T}_sizes`][number],
+  path: string,
+) => `${config.images.secure_base_url}${config.images[`${type}_sizes`][0]}${path}`;

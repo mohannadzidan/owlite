@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import { movies } from "@/services/tmdb.service";
 import { MovieDetailView } from "../../movie-detail-view";
+import { tmdb } from "@/services/tmdb.service";
 
 export default async function MovieDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -11,7 +11,7 @@ export default async function MovieDetailPage({ params }: { params: Promise<{ id
   let credits;
 
   try {
-    [details, credits] = await Promise.all([movies.get(numId), movies.credits(numId)]);
+    [details, credits] = await Promise.all([tmdb.movies.details(numId), tmdb.movies.credits(numId)]);
   } catch {
     notFound();
   }

@@ -273,21 +273,15 @@ export async function selectBestStreams(options: SelectOptions): Promise<ScoredS
 
   // Phase 1: fetch all concurrently, measure time, drop dead streams
   const fetchPromises = m3u8Fetchers.map(async (fetcher) => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
     const start = performance.now();
-    try {
-      // warm up fetcher if needed
-      const resp = await fetcher(controller.signal);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const text = await resp.text();
-      const elapsed = performance.now() - start;
+    // warm up fetcher if needed
+    const resp = await fetcher(AbortSignal.timeout(timeoutMs));
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const text = await resp.text();
+    const elapsed = performance.now() - start;
 
-      const playlist = parseMasterPlaylist(text);
-      return { url: resp.url, requestTimeMs: elapsed, playlist };
-    } finally {
-      clearTimeout(timer);
-    }
+    const playlist = parseMasterPlaylist(text);
+    return { url: resp.url, requestTimeMs: elapsed, playlist };
   });
 
   const settled = await Promise.allSettled(fetchPromises);
@@ -305,14 +299,12 @@ export async function selectBestStreams(options: SelectOptions): Promise<ScoredS
       const playableVariants = filterPlayableVariants(playlist.variants, client, table);
       if (playableVariants.length === 0) {
         droppedUrls.push(url);
-        logger.debug?.(
-          `[HLS Selector] Dropped ${url}: no playable variants after codec filter ${JSON.stringify(playlist)}`,
-        );
+        logger.debug?.(`[HLS Selector] Dropped ${url}`);
       } else {
         validStreams.push({ url, requestTimeMs, playableVariants });
       }
     } else {
-      droppedUrls.push("unresolved");
+      droppedUrls.push("unresolved - " + (String(s.reason)));
     }
   }
 

@@ -9,7 +9,7 @@ export default function Layout({ children }: React.PropsWithChildren) {
   return (
     <>
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 flex h-16 flex-shrink-0 items-center justify-center px-8">
+      <header className="fixed top-0 left-0 right-0 flex h-16 flex-shrink-0 items-center justify-center px-8 z-10">
         <div className="absolute right-8 flex items-center gap-3">
           <Link
             href="/settings"
@@ -21,7 +21,7 @@ export default function Layout({ children }: React.PropsWithChildren) {
           <FullScreenButton />
         </div>
       </header>
-      <main className="flex min-h-screen pt-20">{children}</main>
+      {children}
     </>
   );
 }
