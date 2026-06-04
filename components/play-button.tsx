@@ -36,7 +36,7 @@ export default function PlayButton({ type, tmdbId }: { type: "tv" | "movie"; tmd
         }
       >
         <Play /> {text}
-        {continueWatchingRecord && (
+        {continueWatchingRecord && type === "tv" && (
           <span className="ms-2 text-white/50 font-medium">
             S{season} E{episode}
           </span>

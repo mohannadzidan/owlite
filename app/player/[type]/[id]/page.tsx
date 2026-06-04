@@ -19,7 +19,6 @@ import { ArrowLeft } from "lucide-react";
 import FullScreenButton from "@/components/fullscreen-button";
 import { paths } from "@/lib/paths";
 import { tmdb } from "@/services/tmdb.service";
-import { MovieWithMediaType } from "tmdb-ts";
 
 interface PlayerUIProps {
   title: string;
@@ -196,7 +195,7 @@ export function PlayerUI({
           </button>
           {title && (
             <span className="text-white font-semibold text-base tracking-wide">
-              {title} {episode && `E${episode}`}
+              {title} {!!episode && `E${episode}`}
               {episodeTitle && !episodeTitle.match(/^Episode \d+$/) && (
                 <span className="ms-2 text-gray-400 font-normal"> {episodeTitle}</span>
               )}
