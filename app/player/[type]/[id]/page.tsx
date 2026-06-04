@@ -19,6 +19,7 @@ import { ArrowLeft } from "lucide-react";
 import FullScreenButton from "@/components/fullscreen-button";
 import { paths } from "@/lib/paths";
 import { tmdb } from "@/services/tmdb.service";
+import { MovieWithMediaType } from "tmdb-ts";
 
 interface PlayerUIProps {
   title: string;
@@ -28,6 +29,7 @@ interface PlayerUIProps {
   episode?: number;
   nextSeason?: number;
   nextEpisode?: number;
+  episodeTitle?: string;
   onNextEpisode?: () => void;
 }
 
@@ -99,6 +101,7 @@ export function PlayerUI({
   nextSeason,
   nextEpisode,
   onNextEpisode,
+  episodeTitle,
 }: PlayerUIProps) {
   useShortcutScope(shortcutsScopes.player);
   const router = useRouter();
@@ -191,7 +194,14 @@ export function PlayerUI({
           >
             <ArrowLeft size={28} strokeWidth={1.5} />
           </button>
-          {title && <span className="text-white font-medium text-base tracking-wide">{title}</span>}
+          {title && (
+            <span className="text-white font-semibold text-base tracking-wide">
+              {title} {episode && `E${episode}`}
+              {episodeTitle && !episodeTitle.match(/^Episode \d+$/) && (
+                <span className="ms-2 text-gray-400 font-normal"> {episodeTitle}</span>
+              )}
+            </span>
+          )}
           <FullScreenButton />
         </div>
 
@@ -287,6 +297,12 @@ export default function Page() {
     { revalidateOnFocus: false },
   );
 
+  const seasonDetails = useSWR(
+    type == "tv" && season && ["tmdb.tvSeasons.details", id, season],
+    () => tmdb.tvSeasons.details({ tvShowID: Number(id), seasonNumber: Number(season!) }),
+    { revalidateOnFocus: false },
+  );
+
   useEffect(() => {
     document.body.classList.add("overflow-hidden");
     return () => {
@@ -315,7 +331,7 @@ export default function Page() {
         name: movieTitleResponse.data.title,
         overview: movieTitleResponse.data.overview,
         backdrop_path: movieTitleResponse.data.backdrop_path,
-        poster_path: movieTitleResponse.data.poster_path,
+        poster_path: movieTitleResponse.data.poster_path ?? null,
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -324,7 +340,12 @@ export default function Page() {
   if (!sourceId)
     return <SelectSourceDialog type={type} season={season} episode={episode} id={id} />;
 
-  if (tvTitleResponse.isLoading || movieTitleResponse.isLoading || playResponse.isLoading) {
+  if (
+    tvTitleResponse.isLoading ||
+    movieTitleResponse.isLoading ||
+    playResponse.isLoading ||
+    seasonDetails.isLoading
+  ) {
     return <FullScreenSpinner className="bg-black" />;
   }
 
@@ -333,6 +354,7 @@ export default function Page() {
     playResponse.error ||
     tvTitleResponse.error ||
     movieTitleResponse.error ||
+    seasonDetails.error ||
     (!movieTitleResponse.data && !tvTitleResponse.data) ||
     !playResponse.data
   ) {
@@ -426,6 +448,9 @@ export default function Page() {
     >
       <PlayerUI
         title={title}
+        episodeTitle={
+          seasonDetails?.data?.episodes.find((e) => e.episode_number === Number(episode))?.name
+        }
         tmdbId={tmdbId}
         imdbId={imdbId}
         season={Number(season)}
