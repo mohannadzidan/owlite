@@ -1,5 +1,5 @@
-import DetailLoading from "../../detail-loading";
+import FullScreenSpinner from "@/components/fullscreen-spinner";
 
 export default function Loading() {
-  return <DetailLoading />;
+  return <FullScreenSpinner />;
 }

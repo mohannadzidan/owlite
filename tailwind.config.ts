@@ -88,8 +88,8 @@ const config: Config = {
         "collapsible-up": "collapsible-up 0.2s ease-out",
       },
       screens: {
-        xs: "360px"
-      }
+        xs: "360px",
+      },
     },
   },
   plugins: [
