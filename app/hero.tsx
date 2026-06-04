@@ -53,7 +53,7 @@ export default function Hero({ featured }: { featured: Featured }) {
                 )
                 .otherwise(() => paths.details(featured.type, featured.id))}
             >
-              <Play /> Continue Watching
+              <Play /> {featured.isContinueWatching ? "Continue Watching" : "Watch Now"}
             </Link>
           </Button>
 

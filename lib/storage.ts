@@ -134,7 +134,7 @@ export const storage = {
   saveContinueWatching: (entry: ContinueWatchingRecord[number]) => {
     const current = read<ContinueWatchingRecord>(keys.continueWatching()) ?? [];
     const filtered = current.filter((e) => e.id !== entry.id);
-    write(keys.continueWatching(), [entry, ...filtered].slice(0, 5));
+    write(keys.continueWatching(), [entry, ...filtered]);
   },
 
   getContinueWatching: () => read<ContinueWatchingRecord>(keys.continueWatching()) ?? [],

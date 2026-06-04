@@ -190,7 +190,7 @@ export default function HomePage() {
       {!isSearching && featured?.backdrop_path && <Hero featured={featured} />}
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto px-8 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden z-[1] pt-16">
+      <main className="flex-1 overflow-y-auto px-8 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden z-[1] pt-16 pb-16">
         {isSearching ? (
           <section className="flex flex-col items-center">
             <div className=" grid gap-4 grid-cols-1 xs:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-9">
@@ -211,12 +211,12 @@ export default function HomePage() {
           </section>
         ) : (
           <div className="flex flex-col gap-10">
-            {continueWatchingState && (
+            {continueWatchingState && continueWatchingState.length > 0 && (
               <section>
                 <h2>Continue watching</h2>
                 <Carousel className="-mx-8">
                   <CarouselContent className="px-8">
-                    {continueWatchingState.map((item) => (
+                    {continueWatchingState.slice(0, 12).map((item) => (
                       <CarouselItem key={item.id} className="basis-1/8">
                         <Link
                           href={match(item)

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { BookmarkIcon, EyeIcon, FilmIcon, Share2Icon } from "lucide-react";
+import { BookmarkIcon, EyeIcon, FilmIcon, Play, Share2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { tmdb } from "@/services/tmdb.service";
 import dayjs from "dayjs";
@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import EpisodesList from "./episodes-list";
 import Muted from "@/components/typography/muted";
 import Heading from "@/components/typography/heading";
+import { paths } from "@/lib/paths";
+import Link from "next/link";
+import PlayButton from "../../../../../components/play-button";
 
 const BACKDROP = "https://image.tmdb.org/t/p/w1280";
 
@@ -34,17 +37,18 @@ export default async function TvDetailPage({ params }: { params: Promise<{ id: s
         </div>
       )}
 
-      <div className="absolute -z-10 inset-0 bg-gradient-to-r from-black/90 via-black/55 to-black/25" />
-      <div className="absolute -z-10 inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
+      <div className="absolute -z-10 inset-0 bg-gradient-to-r from-black/95 via-black/70 to-black/20" />
+      <div className="absolute -z-10 inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/40" />
 
-      <div className="grid grid-cols-2 flex-1 overflow-hidden">
-        <div>
-          <h1 className="mb-2 text-5xl font-bold tracking-tight text-white drop-shadow-lg">
+      <div className="grid grid-cols-2 gap-12 flex-1 overflow-hidden pb-4">
+        <div className="flex flex-col self-end">
+          <h1 className="mb-1 text-6xl font-bold tracking-tight text-white drop-shadow-lg">
             {details.name}
           </h1>
-          <Muted className="max-w-md mb-5">{details.tagline}</Muted>
 
-          <section className="mb-5 flex flex-wrap items-center gap-4 text-sm">
+          {details.tagline && <Muted className="text-base italic">{details.tagline}</Muted>}
+
+          <section className="my-5 flex flex-wrap items-center gap-4 text-sm">
             {details.episode_run_time[0] && (
               <span className="text-white/70">{details.episode_run_time[0]} min</span>
             )}
@@ -55,27 +59,27 @@ export default async function TvDetailPage({ params }: { params: Promise<{ id: s
               </span>
               <span className="font-semibold text-white">{details.vote_average.toFixed(1)}</span>
             </span>
+            {details.genres.slice(0, 3).map((g: { id: number; name: string }) => (
+              <Badge variant="outline" key={g.id} className="text-white/80 border-white/30">
+                {g.name}
+              </Badge>
+            ))}
           </section>
-
-          {details.genres.length > 0 && (
-            <section className="mb-5">
-              <Heading>Genres</Heading>
-              <div className="flex flex-wrap gap-2">
-                {details.genres.map((g) => (
-                  <Badge variant="outline" key={g.id}>
-                    {g.name}
-                  </Badge>
-                ))}
-              </div>
-            </section>
+          <section className=" my-4 w-auto">
+            <PlayButton type="tv" tmdbId={numId} />
+          </section>
+          {details.overview && (
+            <p className="mb-6 max-w-xl text-white/80 leading-relaxed line-clamp-4">
+              {details.overview}
+            </p>
           )}
 
           {details.credits.cast.length > 0 && (
             <section className="mb-5">
               <Heading>Cast</Heading>
               <div className="flex flex-wrap gap-2">
-                {details.credits.cast.map((c) => (
-                  <Badge variant="outline" key={c.id}>
+                {details.credits.cast.slice(0, 8).map((c: { id: number; name: string }) => (
+                  <Badge variant="outline" key={c.id} className="text-white/80 border-white/30">
                     {c.name}
                   </Badge>
                 ))}
