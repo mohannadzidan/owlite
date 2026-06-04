@@ -30,6 +30,7 @@ import { Spinner } from "@/components/ui/spinner";
 import Link from "next/link";
 import { paths } from "@/lib/paths";
 import { Progress } from "@/components/ui/progress";
+import { storage } from "@/lib/storage";
 
 export interface EpisodesListProps {
   tmdbId: number;
@@ -105,49 +106,58 @@ export default function EpisodesList({
           <div className="space-y-2 overflow-y-auto flex-1 no-scrollbar animate-in fade-in duration-500">
             {season.episodes
               .filter((e) => e.air_date !== null && e.runtime !== null)
-              .map((episode) => (
-                <Item
-                  key={episode.id}
-                  size="sm"
-                  asChild
-                  className="hover:bg-black/20 p-3 last:border-none border-b-white/40 rounded-none"
-                >
-                  <Link
-                    href={paths.player("tv", tmdbId.toString(), {
-                      season: episode.season_number,
-                      episode: episode.episode_number,
-                    })}
+              .map((episode) => {
+                const progress = storage.getProgress(
+                  tmdbId,
+                  episode.season_number,
+                  episode.episode_number,
+                );
+                return (
+                  <Item
+                    key={episode.id}
+                    size="sm"
+                    asChild
+                    className="hover:bg-black/20 p-3 last:border-none border-b-white/40 rounded-none"
                   >
-                    <ItemMedia>
-                      <div className="w-10">
-                        <Muted className="text-xl text-center ">{episode.episode_number}</Muted>
-                      </div>
-                      <div>
-                        <Image
-                          src={tmdbImageUrl("still", "w185", episode.still_path)}
-                          className="rounded "
-                          alt={episode.name}
-                          sizes="185px"
-                          width={140}
-                          height={0.5 * 140}
-                        />
-                        <Progress value={50} max={100}  />
-                      </div>
-                    </ItemMedia>
-                    <ItemContent className="max-h-[60px]">
-                      <ItemTitle className="flex w-full">
-                        <span className="flex-1">
-                          {!episode.name.match(/^Episode \d+$/) && episode.name}
-                        </span>
-                        <Muted className="text-xs">{episode.runtime}m</Muted>
-                      </ItemTitle>
-                      <ItemDescription className="text-white/70">
-                        {episode.overview}
-                      </ItemDescription>
-                    </ItemContent>
-                  </Link>
-                </Item>
-              ))}
+                    <Link
+                      href={paths.player("tv", tmdbId.toString(), {
+                        season: episode.season_number,
+                        episode: episode.episode_number,
+                      })}
+                    >
+                      <ItemMedia>
+                        <div className="w-10">
+                          <Muted className="text-xl text-center ">{episode.episode_number}</Muted>
+                        </div>
+                        <div>
+                          <Image
+                            src={tmdbImageUrl("still", "w185", episode.still_path)}
+                            className="rounded "
+                            alt={episode.name}
+                            sizes="185px"
+                            width={140}
+                            height={0.5 * 140}
+                          />
+                          {progress && (
+                            <Progress value={(progress.watched / progress.total) * 100} />
+                          )}
+                        </div>
+                      </ItemMedia>
+                      <ItemContent className="max-h-[60px]">
+                        <ItemTitle className="flex w-full">
+                          <span className="flex-1">
+                            {!episode.name.match(/^Episode \d+$/) && episode.name}
+                          </span>
+                          <Muted className="text-xs">{episode.runtime}m</Muted>
+                        </ItemTitle>
+                        <ItemDescription className="text-white/70">
+                          {episode.overview}
+                        </ItemDescription>
+                      </ItemContent>
+                    </Link>
+                  </Item>
+                );
+              })}
           </div>
         </>
       )}

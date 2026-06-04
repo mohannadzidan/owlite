@@ -9,9 +9,7 @@ import type {
 import type { ClientErrorPayload, ClientLogPayload } from "@/lib/observability";
 import { request } from "./request";
 
-
 export { request };
-
 
 export const sources = {
   list: (tmdbId: number, mediaType: "movie" | "tv") =>

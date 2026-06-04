@@ -11,7 +11,10 @@ export default async function MovieDetailPage({ params }: { params: Promise<{ id
   let credits;
 
   try {
-    [details, credits] = await Promise.all([tmdb.movies.details(numId), tmdb.movies.credits(numId)]);
+    [details, credits] = await Promise.all([
+      tmdb.movies.details(numId),
+      tmdb.movies.credits(numId),
+    ]);
   } catch {
     notFound();
   }

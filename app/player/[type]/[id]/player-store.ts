@@ -2,7 +2,7 @@ import { createContext, useContext } from "react";
 import { createStore, useStore } from "zustand";
 import type { StoreApi } from "zustand";
 import type Hls from "hls.js";
-import { PlayerPrefs } from "@/lib/player-storage";
+import { storage } from "@/lib/storage";
 
 // ─── State shape ──────────────────────────────────────────────────────────────
 
@@ -94,10 +94,10 @@ export function createPlayerStore() {
     externalSubtitleUrl: null,
     activeExternalTrackId: null,
     subtitleDelay: 0,
-    subtitleFontSize: PlayerPrefs.subtitleFontSize.get(),
-    subtitleVerticalPosition: PlayerPrefs.subtitleVerticalPosition.get(),
+    subtitleFontSize: storage.getPreferences().subtitleFontSize,
+    subtitleVerticalPosition: storage.getPreferences().subtitleVerticalPosition,
     qualityLevels: [],
-    activeQualityLevel: PlayerPrefs.qualityLevel.get(),
+    activeQualityLevel: storage.getPreferences().qualityLevel,
     videoEl: null,
     hlsInstance: null,
 
@@ -116,11 +116,11 @@ export function createPlayerStore() {
     setActiveExternalTrackId: (activeExternalTrackId) => set({ activeExternalTrackId }),
     setSubtitleDelay: (subtitleDelay) => set({ subtitleDelay }),
     setSubtitleFontSize: (subtitleFontSize) => {
-      PlayerPrefs.subtitleFontSize.set(subtitleFontSize);
+      storage.patchPreferences({ subtitleFontSize });
       set({ subtitleFontSize });
     },
     setSubtitleVerticalPosition: (subtitleVerticalPosition) => {
-      PlayerPrefs.subtitleVerticalPosition.set(subtitleVerticalPosition);
+      storage.patchPreferences({ subtitleVerticalPosition });
       set({ subtitleVerticalPosition });
     },
 
@@ -160,7 +160,7 @@ export function createPlayerStore() {
       if (hlsInstance && hlsInstance.levels.length - 1 > level) {
         hlsInstance.currentLevel = hlsInstance.levels.length - 1;
       } else if (hlsInstance) hlsInstance.currentLevel = level;
-      PlayerPrefs.qualityLevel.set(level);
+      storage.patchPreferences({ qualityLevel: level });
       set({ activeQualityLevel: level });
     },
   }));

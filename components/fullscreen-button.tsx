@@ -9,7 +9,6 @@ export default function FullScreenButton() {
   );
   return (
     <button
-      className="text-muted-foreground hover:text-foreground transition-colors"
       onClick={() => {
         if (document.fullscreenElement) {
           document.exitFullscreen?.();

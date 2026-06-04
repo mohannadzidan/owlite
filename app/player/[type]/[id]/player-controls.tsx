@@ -404,7 +404,6 @@ interface SubtitlesControlProps extends Omit<ComponentProps<"button">, "onClick"
   tmdbId?: number;
   season?: number;
   episode?: number;
-  titleId?: string | null;
   onSelectTrack?: (track: SubtitleTrack) => void;
   onClearSelection?: () => void;
   onDelayChange?: (value: number) => void;
@@ -419,7 +418,6 @@ PlayerControls.Subtitles = function SubtitlesControl({
   tmdbId,
   season,
   episode,
-  titleId,
   onSelectTrack,
   onClearSelection,
   onDelayChange,
@@ -462,7 +460,6 @@ PlayerControls.Subtitles = function SubtitlesControl({
           tmdbId={tmdbId}
           season={season}
           episode={episode}
-          titleId={titleId}
           onSelectTrack={onSelectTrack}
           onClearSelection={onClearSelection}
           onDelayChange={onDelayChange}

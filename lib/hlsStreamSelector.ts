@@ -304,7 +304,7 @@ export async function selectBestStreams(options: SelectOptions): Promise<ScoredS
         validStreams.push({ url, requestTimeMs, playableVariants });
       }
     } else {
-      droppedUrls.push("unresolved - " + (String(s.reason)));
+      droppedUrls.push("unresolved - " + String(s.reason));
     }
   }
 

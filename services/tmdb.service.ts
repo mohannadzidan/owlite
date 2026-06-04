@@ -92,4 +92,5 @@ export const tmdbImageUrl = <T extends "backdrop" | "logo" | "poster" | "profile
   type: T,
   size: (typeof config.images)[`${T}_sizes`][number],
   path: string,
-) => `${config.images.secure_base_url}${config.images[`${type}_sizes`][0]}${path}`;
+) =>
+  `${config.images.secure_base_url}${config.images[`${type}_sizes`].find((a) => a === size) || config.images[`${type}_sizes`][0]}${path}`;

@@ -47,7 +47,7 @@ const config: Config = {
         sans: ["var(--font-sans)", "sans-serif"],
         heading: ["var(--font-heading)", "var(--font-sans)", "sans-serif"],
       },
-      fontSize:{
+      fontSize: {
         "2xs": "0.625rem",
       },
       borderRadius: {
@@ -87,6 +87,9 @@ const config: Config = {
         "collapsible-down": "collapsible-down 0.2s ease-out",
         "collapsible-up": "collapsible-up 0.2s ease-out",
       },
+      screens: {
+        xs: "360px"
+      }
     },
   },
   plugins: [

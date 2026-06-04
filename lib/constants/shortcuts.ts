@@ -62,3 +62,11 @@ export const SHORTCUTS: Shortcut[] = [
     activeInInputs: false,
   },
 ] as const;
+
+export function getDefaultBindings() {
+  const bindings: Record<string, Shortcut> = {};
+  for (const shortcut of SHORTCUTS) {
+    bindings[shortcut.id] = shortcut;
+  }
+  return bindings;
+}

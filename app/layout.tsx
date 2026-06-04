@@ -22,7 +22,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {/* eslint-disable-next-line @next/next/no-sync-scripts */}
         <script dangerouslySetInnerHTML={{ __html: flexGapDetect }} />
       </head>
-      <body className="flex flex-col bg-background text-foreground min-h-screen select-none">{children}</body>
+      <body className="flex flex-col bg-background text-foreground min-h-screen select-none">
+        {children}
+      </body>
     </html>
   );
 }
