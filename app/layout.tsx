@@ -1,4 +1,4 @@
-import { Geist_Mono, Indie_Flower, Inter, Lato } from "next/font/google";
+import { Geist_Mono, Indie_Flower, Inter, Lato, Patrick_Hand } from "next/font/google";
 
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -9,10 +9,10 @@ const fontSans = Lato({
   weight: ["400", "700", "900"],
 });
 
-const fontSerif = Indie_Flower({
+const fontSerif = Patrick_Hand({
   subsets: ["latin"],
   variable: "--font-serif",
-  weight: "400",
+  weight: ["400"],
 });
 const fontMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
@@ -27,10 +27,7 @@ const flexGapDetect = `(function(){var e=document.createElement("div");e.style.c
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-    >
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* eslint-disable-next-line @next/next/no-sync-scripts */}
         <script dangerouslySetInnerHTML={{ __html: flexGapDetect }} />

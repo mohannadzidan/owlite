@@ -215,7 +215,7 @@ export function PlayerUI({
         <div className="relative flex flex-col gap-4 px-6 pb-6">
           {/* Progress bar + remaining time */}
           <div className="flex items-center gap-4">
-            <PlayerControls.ProgressBar className="flex-1" style={{ height: 4 }} onSeek={seek} />
+            <PlayerControls.ProgressBar className="flex-1" onSeek={seek} />
             <PlayerControls.RemainingTime className="text-white text-sm tabular-nums shrink-0 opacity-90" />
           </div>
 

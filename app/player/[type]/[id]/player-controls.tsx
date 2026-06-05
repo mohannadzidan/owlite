@@ -214,7 +214,6 @@ PlayerControls.NextEpisode = function NextEpisode({
 
 PlayerControls.ProgressBar = function ProgressBar({
   className,
-  style,
   ...props
 }: ComponentProps<"div"> & { onSeek?: (timeSeconds: number) => void }) {
   const currentTime = usePlayerStore((s) => s.currentTime);
@@ -300,59 +299,34 @@ PlayerControls.ProgressBar = function ProgressBar({
       aria-valuemin={0}
       aria-valuemax={Math.round(duration)}
       tabIndex={0}
-      className={cn("player-progress-bar", className)}
-      style={{ position: "relative", cursor: "pointer", height: 4, ...style }}
+      className={cn(
+        "player-progress-bar relative flex items-center h-5 cursor-pointer",
+        className,
+      )}
       onMouseDown={handleMouseDown}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       {...props}
     >
       {/* Track */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          borderRadius: 9999,
-          background: "rgba(255,255,255,0.2)",
-        }}
-      />
+      <div className="absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-muted" />
       {/* Buffered */}
       <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          height: "100%",
-          width: `${buffPct}%`,
-          borderRadius: 9999,
-          background: "rgba(255,255,255,0.35)",
-        }}
+        className="absolute top-1/2 left-0 h-1.5 -translate-y-1/2 rounded-full bg-muted-foreground/40"
+        style={{ width: `${buffPct}%` }}
       />
       {/* Played */}
       <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          height: "100%",
-          width: `${displayPct}%`,
-          borderRadius: 9999,
-          background: "var(--primary)",
-        }}
+        className="absolute top-1/2 left-0 h-1.5 -translate-y-1/2 rounded-full bg-primary"
+        style={{ width: `${displayPct}%` }}
       />
       {/* Thumb */}
       <div
+        className="absolute z-10 rounded-full bg-primary shadow-sm pointer-events-none w-4 h-4"
         style={{
-          position: "absolute",
           top: "50%",
           left: `${displayPct}%`,
           transform: "translate(-50%, -50%)",
-          width: 14,
-          height: 14,
-          borderRadius: "50%",
-          background: "var(--primary)",
-          boxShadow: "0 0 4px rgba(0,0,0,0.5)",
-          pointerEvents: "none",
         }}
       />
     </div>

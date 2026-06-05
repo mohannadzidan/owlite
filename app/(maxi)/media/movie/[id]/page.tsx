@@ -15,7 +15,6 @@ const BACKDROP = "https://image.tmdb.org/t/p/w1280";
 const POSTER = "https://image.tmdb.org/t/p/w500";
 
 export default async function MovieDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  await new Promise((resolve) => setTimeout(resolve, 10000)); // Simulate loading state
   const { id } = await params;
   const numId = Number(id);
   if (isNaN(numId)) notFound();
