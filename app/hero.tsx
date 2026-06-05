@@ -33,7 +33,10 @@ export default function Hero({ featured }: { featured: Featured }) {
         width={1920}
         height={1080}
         loading="eager"
-        className="absolute top-0 bottom-0 left-0 right-0 -mb-72 -mt-16 -z-10 object-cover h-screen w-screen brightness-50 [mask-image:linear-gradient(to_bottom,rgba(0,0,0,1)_50%,rgba(0,0,0,0)_100%)]"
+        style={{
+          maskComposite: 'intersect'
+        }}
+        className=" absolute top-0 bottom-0 left-0 right-0 -mb-72 -mt-16 -z-10 object-cover h-screen w-screen brightness-50 [mask-image:_linear-gradient(to_bottom,rgba(0,0,0,1)_50%,rgba(0,0,0,0)_100%)]"
       />
       <div className="my-auto px-16">
         <h1>{featured.name}</h1>

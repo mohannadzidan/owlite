@@ -61,7 +61,7 @@ export default function SelectSourceDialog({ type, season, episode, id }: Select
     );
   }
   if (isLoading) {
-    return <FullScreenSpinner className="bg-black" />;
+    return <FullScreenSpinner />;
   }
 
   return (

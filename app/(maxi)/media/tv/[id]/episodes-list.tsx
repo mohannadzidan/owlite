@@ -144,7 +144,7 @@ export default function EpisodesList({
                         </div>
                       </ItemMedia>
                       <ItemContent className="max-h-[60px]">
-                        <ItemTitle className="flex w-full">
+                        <ItemTitle className="flex w-full ">
                           <span className="flex-1">
                             {!episode.name.match(/^Episode \d+$/) && episode.name}
                           </span>

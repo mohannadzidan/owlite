@@ -345,7 +345,7 @@ export default function Page() {
     playResponse.isLoading ||
     seasonDetails.isLoading
   ) {
-    return <FullScreenSpinner className="bg-black" />;
+    return <FullScreenSpinner />;
   }
 
   if (

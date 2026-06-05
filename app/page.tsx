@@ -148,7 +148,7 @@ export default function HomePage() {
     <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
       {/* Header */}
       <Navigation
-        className="fixed top-0 left-0 w-full z-10 bg-gradient-to-b from-background to-transparent"
+        className="fixed top-0 left-0 w-full z-10"
         rightItems={
           <>
             {toggleSearch && (
@@ -212,7 +212,7 @@ export default function HomePage() {
         ) : (
           <div className="flex flex-col gap-10">
             {continueWatchingState && continueWatchingState.length > 0 && (
-              <section>
+              <section className="animate-in ">
                 <h2>Continue watching</h2>
                 <Carousel className="-mx-8">
                   <CarouselContent className="px-8">
