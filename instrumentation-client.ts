@@ -24,8 +24,8 @@ import {
 } from "@/lib/observability";
 import { shortcutsStore } from "./lib/shortcuts/store";
 import { SHORTCUTS } from "./lib/constants/shortcuts";
-import { installShortcuts, ShortcutStore } from "./lib/shortcuts";
-import { storage } from "./lib/storage";
+import { installShortcuts } from "./lib/shortcuts";
+import { loadBindings, saveBindings } from "./lib/shortcuts-storage";
 
 function getCookie(name: string): string | null {
   if (typeof document === "undefined") return null;
@@ -274,22 +274,15 @@ try {
   // Intentionally swallow instrumentation initialization failures.
 }
 
-const savedPrefs = storage.getPreferences();
-const storedBindings: ShortcutStore["shortcuts"] = savedPrefs.bindings;
+const storedBindings = loadBindings();
 SHORTCUTS.forEach((shortcut) => {
-  if (!storedBindings[shortcut.id]) {
-    storedBindings[shortcut.id] = shortcut;
-  }
-  shortcutsStore.getState().register(storedBindings[shortcut.id]);
+  shortcutsStore.getState().register(storedBindings[shortcut.id] ?? shortcut);
 });
-
-// write shortcuts including defaults that were missing
-storage.savePreferences({ ...savedPrefs, bindings: storedBindings });
 
 // persist shortcuts to localStorage whenever they change
 shortcutsStore.subscribe((state, prevState) => {
   if (state.shortcuts !== prevState.shortcuts) {
-    storage.savePreferences({ ...storage.getPreferences(), bindings: state.shortcuts });
+    saveBindings(state.shortcuts);
   }
 });
 

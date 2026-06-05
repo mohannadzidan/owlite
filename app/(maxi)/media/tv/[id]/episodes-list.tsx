@@ -4,13 +4,7 @@ import Image from "next/image";
 import ErrorFallback from "@/components/error";
 import Muted from "@/components/typography/muted";
 import { Button } from "@/components/ui/button";
-import {
-  Item,
-  ItemContent,
-  ItemDescription,
-  ItemMedia,
-  ItemTitle,
-} from "@/components/ui/item";
+import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@/components/ui/item";
 import { tmdb, tmdbImageUrl } from "@/services/tmdb.service";
 import useSWR from "swr";
 import {
@@ -27,7 +21,62 @@ import { Spinner } from "@/components/ui/spinner";
 import Link from "next/link";
 import { paths } from "@/lib/paths";
 import { Progress } from "@/components/ui/progress";
-import { storage } from "@/lib/storage";
+import { useContinueWatching } from "@/hooks/use-continue-watching";
+import { useProgress } from "@/hooks/use-progress";
+
+type TmdbEpisode = {
+  id: number;
+  episode_number: number;
+  season_number: number;
+  name: string;
+  overview: string;
+  runtime: number | null;
+  still_path: string;
+};
+
+function EpisodeItem({ tmdbId, episode }: { tmdbId: number; episode: TmdbEpisode }) {
+  const { progress } = useProgress(tmdbId, episode.season_number, episode.episode_number);
+  return (
+    <Item
+      size="sm"
+      asChild
+      className="hover:bg-black/20 p-3 last:border-none border-b-white/40 rounded-none"
+    >
+      <Link
+        href={paths.player("tv", tmdbId.toString(), {
+          season: episode.season_number,
+          episode: episode.episode_number,
+        })}
+      >
+        <ItemMedia>
+          <div className="w-10">
+            <Muted className="text-xl text-center ">{episode.episode_number}</Muted>
+          </div>
+          <div>
+            <Image
+              src={tmdbImageUrl("still", "w185", episode.still_path)}
+              className="rounded "
+              alt={episode.name}
+              sizes="185px"
+              width={140}
+              height={0.5 * 140}
+            />
+            {progress && progress.total > 0 && (
+              <Progress value={(progress.watched / progress.total) * 100} />
+            )}
+          </div>
+        </ItemMedia>
+        <ItemContent className="max-h-[60px]">
+          <ItemTitle className="flex w-full ">
+            <span className="flex-1">{!episode.name.match(/^Episode \d+$/) && episode.name}</span>
+            <Muted className="text-xs">{episode.runtime}m</Muted>
+          </ItemTitle>
+          <ItemDescription className="text-white/70">{episode.overview}</ItemDescription>
+        </ItemContent>
+      </Link>
+    </Item>
+  );
+}
 
 export interface EpisodesListProps {
   tmdbId: number;
@@ -43,14 +92,14 @@ export default function EpisodesList({
   initialSeason,
 }: EpisodesListProps) {
   const [seasonNumber, setSeasonNumber] = useState(initialSeason ?? 1);
+  const { continueWatching } = useContinueWatching();
 
   useEffect(() => {
     if (initialSeason) return;
-    const cw = storage.getContinueWatching();
-    const entry = cw.find((e) => e.type === "tv" && e.id === tmdbId);
+    const entry = continueWatching.find((e) => e.type === "tv" && e.id === tmdbId);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (entry && entry.type === "tv") setSeasonNumber(entry.season);
-  }, [initialSeason, tmdbId]);
+  }, [initialSeason, tmdbId, continueWatching]);
   const {
     data: season,
     isLoading,
@@ -113,58 +162,9 @@ export default function EpisodesList({
           <div className="overflow-y-auto flex-1 no-scrollbar animate-in fade-in duration-500">
             {season.episodes
               .filter((e) => e.air_date !== null && e.runtime !== null)
-              .map((episode) => {
-                const progress = storage.getProgress(
-                  tmdbId,
-                  episode.season_number,
-                  episode.episode_number,
-                );
-                return (
-                  <Item
-                    key={episode.id}
-                    size="sm"
-                    asChild
-                    className="hover:bg-black/20 p-3 last:border-none border-b-white/40 rounded-none"
-                  >
-                    <Link
-                      href={paths.player("tv", tmdbId.toString(), {
-                        season: episode.season_number,
-                        episode: episode.episode_number,
-                      })}
-                    >
-                      <ItemMedia>
-                        <div className="w-10">
-                          <Muted className="text-xl text-center ">{episode.episode_number}</Muted>
-                        </div>
-                        <div>
-                          <Image
-                            src={tmdbImageUrl("still", "w185", episode.still_path)}
-                            className="rounded "
-                            alt={episode.name}
-                            sizes="185px"
-                            width={140}
-                            height={0.5 * 140}
-                          />
-                          {progress && (
-                            <Progress value={(progress.watched / progress.total) * 100} />
-                          )}
-                        </div>
-                      </ItemMedia>
-                      <ItemContent className="max-h-[60px]">
-                        <ItemTitle className="flex w-full ">
-                          <span className="flex-1">
-                            {!episode.name.match(/^Episode \d+$/) && episode.name}
-                          </span>
-                          <Muted className="text-xs">{episode.runtime}m</Muted>
-                        </ItemTitle>
-                        <ItemDescription className="text-white/70">
-                          {episode.overview}
-                        </ItemDescription>
-                      </ItemContent>
-                    </Link>
-                  </Item>
-                );
-              })}
+              .map((episode) => (
+                <EpisodeItem key={episode.id} tmdbId={tmdbId} episode={episode} />
+              ))}
           </div>
         </>
       )}
