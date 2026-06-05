@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 
 function is169(w: number, h: number) {
   const ratio = h / w;
-  console.log(ratio);
   return ratio >= 0.4 && ratio <= 1;
 }
 

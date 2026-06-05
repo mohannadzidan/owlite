@@ -5,7 +5,6 @@ import type { NextRequest } from "next/server";
 export function proxy(request: NextRequest) {
   // 1. Target only your API proxy paths
   if (request.nextUrl.pathname.startsWith("/api/proxy/tmdb")) {
-    console.log("Received request for TMDB API proxy:", request.url);
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("Authorization", `Bearer ${process.env.TMDB_API_KEY}`);
 
@@ -13,7 +12,6 @@ export function proxy(request: NextRequest) {
       "https://api.themoviedb.org" +
       request.nextUrl.pathname.slice("/api/proxy/tmdb".length) +
       request.nextUrl.search;
-    console.log("Proxying request to TMDB API:", externalApiUrl, request.nextUrl.pathname);
     return NextResponse.rewrite(externalApiUrl, {
       request: {
         headers: requestHeaders,

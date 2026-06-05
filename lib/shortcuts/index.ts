@@ -28,11 +28,6 @@ export const installShortcuts = () => {
             return;
           }
           shortcutsStore.getState().dispatch(e);
-          console.log(
-            e.key,
-            shortcutsStore.getState().lastCombo,
-            comboUtils.serialise(shortcutsStore.getState().lastCombo!),
-          );
         },
         true,
       );

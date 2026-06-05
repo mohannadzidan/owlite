@@ -238,15 +238,6 @@ export async function selectBestStreams(options: SelectOptions): Promise<ScoredS
     logger = console,
     codecSupportTable,
   } = options;
-  console.log("Selecting best stream from candidates:", {
-    m3u8Fetchers: m3u8Fetchers.length,
-    screenHeight,
-    userAgent,
-    timeoutMs,
-    weights,
-    logger,
-    codecSupportTable,
-  });
   if (!m3u8Fetchers.length) throw new NoStreamsError([]);
   if (screenHeight <= 0) throw new RangeError("screenHeight must be positive");
 
@@ -266,7 +257,6 @@ export async function selectBestStreams(options: SelectOptions): Promise<ScoredS
 
   const client = detectClient(userAgent);
 
-  console.log("Detected client:", client);
   if (!client.resolvable) {
     logger.warn(`[HLS Selector] Skipping codec filter: ${client.reason}. UA: ${userAgent}`);
   }

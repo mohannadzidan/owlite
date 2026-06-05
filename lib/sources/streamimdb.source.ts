@@ -23,12 +23,10 @@ async function fetchBestStreamUrl(
     return null;
   }
 
-  console.trace("Vaplayer response", body);
   const streamUrls = body?.data?.stream_urls;
 
   if (!Array.isArray(streamUrls) || streamUrls.length === 0) return null;
   try {
-    console.log("Found stream URLs, selecting best one...", { streamUrls, screenSize });
     const scoredStreams = await selectBestStreams({
       m3u8Fetchers: streamUrls.map((url) =>
         streams.fetcher(url, imdbId, mediaType, season, episode),
@@ -36,10 +34,11 @@ async function fetchBestStreamUrl(
       screenHeight: screenSize,
       userAgent,
     });
-    console.log("Scored streams", scoredStreams);
+    console.log("Resolved imdb id:", imdbId, "media type:", mediaType, "season:", season, "episode:", episode, "file name:", body.data!.file_name);
     return { url: scoredStreams[0].url, fileName: body.data!.file_name! };
   } catch (e) {
     console.error("Error selecting best stream", e);
+    console.log("Resolved imdb id:", imdbId, "media type:", mediaType, "season:", season, "episode:", episode, "file name:", body.data!.file_name);
     return { url: streamUrls.at(-1)!, fileName: body.data!.file_name! };
   }
 }
@@ -52,7 +51,6 @@ const streamImdbSource: VideoSource = {
 
   async resolve(params: ResolveParams): Promise<PlayResponse | null> {
     const imdbId = params.imdb_id;
-    console.log("Resolved IMDb ID", { imdbId, params });
 
     const bestStream = await fetchBestStreamUrl(
       params.screenSize,
@@ -62,7 +60,6 @@ const streamImdbSource: VideoSource = {
       params.season,
       params.episode,
     );
-    console.log("Best stream", { bestStream });
     if (!bestStream) return null;
 
     const referer = streams.referer(imdbId, params.media_type, params.season, params.episode);

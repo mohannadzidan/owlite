@@ -24,19 +24,20 @@ export async function POST(request: NextRequest) {
   const cookieSessionId = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const sessionId = payload.sessionId || cookieSessionId || "unknown";
 
-  console.error("[client-error]", {
-    sessionId,
-    type: payload.type,
-    message: payload.message,
-    stack: payload.stack,
-    filename: payload.filename,
-    lineno: payload.lineno,
-    colno: payload.colno,
-    url: payload.url,
-    userAgent: payload.userAgent,
-    timestamp: payload.timestamp,
-    cookieSessionId,
-  });
+  if (process.env.NODE_ENV === "development")
+    console.error("[client-error]", {
+      sessionId,
+      type: payload.type,
+      message: payload.message,
+      stack: payload.stack,
+      filename: payload.filename,
+      lineno: payload.lineno,
+      colno: payload.colno,
+      url: payload.url,
+      userAgent: payload.userAgent,
+      timestamp: payload.timestamp,
+      cookieSessionId,
+    });
 
   return new NextResponse(null, { status: 204 });
 }

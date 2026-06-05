@@ -24,15 +24,16 @@ export async function POST(request: NextRequest) {
   const cookieSessionId = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const sessionId = payload.sessionId || cookieSessionId || "unknown";
 
-  console.info("[client-log]", {
-    sessionId,
-    method: payload.method,
-    args: payload.args,
-    url: payload.url,
-    userAgent: payload.userAgent,
-    timestamp: payload.timestamp,
-    cookieSessionId,
-  });
+  if (process.env.NODE_ENV === "development")
+    console.info("[client-log]", {
+      sessionId,
+      method: payload.method,
+      args: payload.args,
+      url: payload.url,
+      userAgent: payload.userAgent,
+      timestamp: payload.timestamp,
+      cookieSessionId,
+    });
 
   return new NextResponse(null, { status: 204 });
 }

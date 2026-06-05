@@ -60,7 +60,6 @@ function ProgressSaver({
   }, [playerApi]);
 
   useEffect(() => {
-    console.log("duration save");
     storage.patchProgress(tmdbId, { total: duration }, season, episode);
   }, [duration, episode, season, tmdbId]);
   // Restore saved position once playback is ready
