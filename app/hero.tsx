@@ -4,7 +4,7 @@ import Image from "next/image";
 import { Info, Play } from "lucide-react";
 import { tmdbImageUrl } from "@/services/tmdb.service";
 import { Button } from "@/components/ui/button";
-import { ContinueWatchingRecord } from "@/lib/storage";
+import { ContinueWatchingEntry } from "@/lib/profile-types";
 import { paths } from "@/lib/paths";
 import { match } from "ts-pattern";
 import Link from "next/link";
@@ -18,7 +18,7 @@ export type Featured =
       overview: string;
       isContinueWatching?: false;
     }
-  | (ContinueWatchingRecord[number] & { isContinueWatching: true });
+  | (ContinueWatchingEntry & { isContinueWatching: true });
 
 export default function Hero({ featured }: { featured: Featured }) {
   return (

@@ -2,7 +2,8 @@ import { createContext, useContext } from "react";
 import { createStore, useStore } from "zustand";
 import type { StoreApi } from "zustand";
 import type Hls from "hls.js";
-import { storage } from "@/lib/storage";
+import { DEFAULT_PREFERENCES } from "@/lib/profile-types";
+import { profileService } from "@/services/profile.service";
 
 // ─── State shape ──────────────────────────────────────────────────────────────
 
@@ -94,10 +95,10 @@ export function createPlayerStore() {
     externalSubtitleUrl: null,
     activeExternalTrackId: null,
     subtitleDelay: 0,
-    subtitleFontSize: storage.getPreferences().subtitleFontSize,
-    subtitleVerticalPosition: storage.getPreferences().subtitleVerticalPosition,
+    subtitleFontSize: DEFAULT_PREFERENCES.subtitleFontSize,
+    subtitleVerticalPosition: DEFAULT_PREFERENCES.subtitleVerticalPosition,
     qualityLevels: [],
-    activeQualityLevel: storage.getPreferences().qualityLevel,
+    activeQualityLevel: DEFAULT_PREFERENCES.qualityLevel,
     videoEl: null,
     hlsInstance: null,
 
@@ -116,11 +117,11 @@ export function createPlayerStore() {
     setActiveExternalTrackId: (activeExternalTrackId) => set({ activeExternalTrackId }),
     setSubtitleDelay: (subtitleDelay) => set({ subtitleDelay }),
     setSubtitleFontSize: (subtitleFontSize) => {
-      storage.patchPreferences({ subtitleFontSize });
+      void profileService.patchPreferences({ subtitleFontSize });
       set({ subtitleFontSize });
     },
     setSubtitleVerticalPosition: (subtitleVerticalPosition) => {
-      storage.patchPreferences({ subtitleVerticalPosition });
+      void profileService.patchPreferences({ subtitleVerticalPosition });
       set({ subtitleVerticalPosition });
     },
 
@@ -160,7 +161,7 @@ export function createPlayerStore() {
       if (hlsInstance && hlsInstance.levels.length - 1 > level) {
         hlsInstance.currentLevel = hlsInstance.levels.length - 1;
       } else if (hlsInstance) hlsInstance.currentLevel = level;
-      storage.patchPreferences({ qualityLevel: level });
+      void profileService.patchPreferences({ qualityLevel: level });
       set({ activeQualityLevel: level });
     },
   }));

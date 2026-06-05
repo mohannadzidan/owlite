@@ -14,12 +14,13 @@ import { usePlayerStore, usePlayerStoreApi } from "@/app/player/[type]/[id]/play
 import { SubtitleTrack } from "@/lib/types";
 import { shortcutsScopes, useShortcut, useShortcutScope } from "@/lib/shortcuts";
 import { PlayerControls } from "@/app/player/[type]/[id]/player-controls";
-import { storage } from "@/lib/storage";
+import { profileService } from "@/services/profile.service";
 import { subtitles as subtitlesService } from "@/services/api.service";
 import { ArrowLeft } from "lucide-react";
 import FullScreenButton from "@/components/fullscreen-button";
 import { paths } from "@/lib/paths";
 import { tmdb } from "@/services/tmdb.service";
+import { useProfilePreferences } from "@/hooks/use-profile-preferences";
 
 interface PlayerUIProps {
   title: string;
@@ -48,11 +49,13 @@ function ProgressSaver({
   const setActiveExternalTrackId = usePlayerStore((s) => s.setActiveExternalTrackId);
   const currentTimeRef = useRef(0);
   const playerApi = usePlayerStoreApi();
+  const restoredRef = useRef(false);
 
   // Restore saved subtitle track ID immediately on mount
   useEffect(() => {
-    const trackId = storage.getSubtitles(tmdbId, season, episode);
-    if (trackId) setActiveExternalTrackId(trackId);
+    profileService.getSubtitles(tmdbId, season, episode).then((trackId) => {
+      if (trackId) setActiveExternalTrackId(trackId);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tmdbId, season, episode]);
 
@@ -61,29 +64,35 @@ function ProgressSaver({
   }, [playerApi]);
 
   useEffect(() => {
-    storage.patchProgress(tmdbId, { total: duration }, season, episode);
+    void profileService.patchProgress(tmdbId, { total: duration }, season, episode);
   }, [duration, episode, season, tmdbId]);
+
   // Restore saved position once playback is ready
-  const restored = useRef(false);
   useEffect(() => {
-    if (restored.current) return;
+    if (restoredRef.current) return;
     if (playbackState !== "playing" && playbackState !== "paused") return;
-    restored.current = true;
-    const saved = storage.getProgress(tmdbId, season, episode)?.watched;
-    if (saved && saved > 5) seek(saved);
+    restoredRef.current = true;
+    profileService.getProgress(tmdbId, season, episode).then((saved) => {
+      if (saved && saved.watched > 5) seek(saved.watched);
+    });
   }, [playbackState, tmdbId, season, episode, seek]);
 
   // Save on pause / ended
   useEffect(() => {
     if (playbackState !== "paused" && playbackState !== "ended") return;
-    storage.patchProgress(tmdbId, { watched: currentTimeRef.current }, season, episode);
+    void profileService.patchProgress(tmdbId, { watched: currentTimeRef.current }, season, episode);
   }, [playbackState, tmdbId, season, episode]);
 
-  // Save every 30 s while playing
+  // Save every 5 s while playing
   useEffect(() => {
     if (playbackState !== "playing") return;
     const id = setInterval(() => {
-      storage.patchProgress(tmdbId, { watched: currentTimeRef.current }, season, episode);
+      void profileService.patchProgress(
+        tmdbId,
+        { watched: currentTimeRef.current },
+        season,
+        episode,
+      );
     }, 5_000);
     return () => clearInterval(id);
   }, [playbackState, tmdbId, season, episode]);
@@ -105,6 +114,7 @@ function FavoriteSubtitleApplier({
   const activeExternalTrackId = usePlayerStore((s) => s.activeExternalTrackId);
   const setExternalSubtitleUrl = usePlayerStore((s) => s.setExternalSubtitleUrl);
   const setActiveExternalTrackId = usePlayerStore((s) => s.setActiveExternalTrackId);
+  const { preferences } = useProfilePreferences();
 
   const { data } = useSWR(
     imdbId || tmdbId ? ["subtitles", imdbId, tmdbId, season, episode] : null,
@@ -120,7 +130,7 @@ function FavoriteSubtitleApplier({
   }, [imdbId, tmdbId, season, episode]);
 
   useEffect(() => {
-    const preferred = storage.getPreferences().subtitleLanguage;
+    const preferred = preferences.subtitleLanguage;
     const favTrack =
       tracks.filter((t) => t.isFavorite && t.provider === "local" && t.language === preferred)[0] ??
       null;
@@ -131,27 +141,34 @@ function FavoriteSubtitleApplier({
       !activeExternalTrackId ||
       activeExternalTrackId !== favTrack.id
     ) {
-      console.log(
-        "skip Auto-applying subtitle track",
-        appliedRef.current,
-        tracks.length,
-        activeExternalTrackId,
-      );
       return;
     }
-    console.log(
-      "Auto-applying subtitle track",
-      appliedRef.current,
-      tracks.length,
-      activeExternalTrackId,
-    );
 
     appliedRef.current = true;
-    storage.saveSubtitles(tmdbId, favTrack.id, season, episode);
+    void profileService.saveSubtitles(tmdbId, favTrack.id, season, episode);
     setExternalSubtitleUrl(favTrack.download_url);
     setActiveExternalTrackId(favTrack.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tracks, activeExternalTrackId, tracks.length]);
+
+  return null;
+}
+
+function PrefsInitializer() {
+  const { preferences } = useProfilePreferences();
+  const setSubtitleFontSize = usePlayerStore((s) => s.setSubtitleFontSize);
+  const setSubtitleVerticalPosition = usePlayerStore((s) => s.setSubtitleVerticalPosition);
+  const setQualityLevel = usePlayerStore((s) => s.setQualityLevel);
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+    setSubtitleFontSize(preferences.subtitleFontSize);
+    setSubtitleVerticalPosition(preferences.subtitleVerticalPosition);
+    setQualityLevel(preferences.qualityLevel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preferences]);
 
   return null;
 }
@@ -243,6 +260,7 @@ export function PlayerUI({
 
   return (
     <>
+      <PrefsInitializer />
       <ProgressSaver tmdbId={tmdbId} season={season} episode={episode} />
       <FavoriteSubtitleApplier tmdbId={tmdbId} imdbId={imdbId} season={season} episode={episode} />
       <PlayerControls>
@@ -377,7 +395,7 @@ export default function Page() {
 
   useEffect(() => {
     if (tvTitleResponse.data?.id && tvTitleResponse.data.id === Number(id)) {
-      storage.saveContinueWatching({
+      void profileService.saveContinueWatching({
         id: Number(id),
         type: "tv",
         lastWatch: Date.now(),
@@ -389,7 +407,7 @@ export default function Page() {
         poster_path: tvTitleResponse.data.poster_path,
       });
     } else if (movieTitleResponse.data?.id && movieTitleResponse.data.id === Number(id)) {
-      storage.saveContinueWatching({
+      void profileService.saveContinueWatching({
         id: Number(id),
         type: "movie",
         lastWatch: Date.now(),

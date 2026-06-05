@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { Globe, HardDrive, Minus, Plus } from "lucide-react";
 import useSWR from "swr";
 import type { SubtitleTrack } from "@/lib/types";
-import { storage } from "@/lib/storage";
+import { profileService } from "@/services/profile.service";
+import { useProfilePreferences } from "@/hooks/use-profile-preferences";
 import { subtitles } from "@/services/api.service";
 import { usePlayerStore } from "./player-store";
 
@@ -83,6 +84,7 @@ export function SubtitlesPanel({
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const { preferences, patchPreferences } = useProfilePreferences();
 
   const activeExternalTrackId = usePlayerStore((s) => s.activeExternalTrackId);
   const delay = usePlayerStore((s) => s.subtitleDelay);
@@ -115,7 +117,7 @@ export function SubtitlesPanel({
         return;
       }
     }
-    const preferred = storage.getPreferences().subtitleLanguage;
+    const preferred = preferences.subtitleLanguage;
     if (preferred && tracks.some((t) => t.language === preferred)) {
       autoSelectedRef.current = true;
       setSelectedLanguage(preferred);
@@ -150,9 +152,9 @@ export function SubtitlesPanel({
         return;
       }
       onSelectTrack?.(track);
-      storage.patchPreferences({ subtitleLanguage: track.language });
+      void patchPreferences({ subtitleLanguage: track.language });
       if (tmdbId) {
-        storage.saveSubtitles(tmdbId, track.id, season, episode);
+        void profileService.saveSubtitles(tmdbId, track.id, season, episode);
       }
     } catch {
       setDownloadError("An error occurred while downloading subtitles.");
@@ -164,7 +166,7 @@ export function SubtitlesPanel({
     onClearSelection?.();
     setDownloadError(null);
     if (tmdbId) {
-      storage.saveSubtitles(tmdbId, "", season, episode);
+      void profileService.saveSubtitles(tmdbId, "", season, episode);
     }
   };
 
