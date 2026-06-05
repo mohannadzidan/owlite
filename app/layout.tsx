@@ -2,6 +2,7 @@ import { Geist_Mono, Indie_Flower, Inter, Lato, Patrick_Hand } from "next/font/g
 
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { RemoteControlProvider } from "@/components/remote/remote-control-provider";
 
 const fontSans = Lato({
   subsets: ["latin"],
@@ -40,7 +41,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           fontMono.variable,
         )}
       >
-        {children}
+        <RemoteControlProvider>{children}</RemoteControlProvider>
       </body>
     </html>
   );
