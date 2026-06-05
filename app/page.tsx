@@ -82,7 +82,6 @@ export default function HomePage() {
   const series = allResults.filter((r) => r.media_type === "tv");
   const searchResults = searchData ?? [];
   const isSearching = !!query;
-  console.log(query);
 
   const featured = useMemo<Featured | null>(() => {
     if (

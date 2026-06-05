@@ -82,7 +82,7 @@ export default function EpisodesList({
         )}
       </Heading>
       {isLoading && (
-        <div className="flex-1 flex justify-center items-center">
+        <div className="flex-1 flex justify-center items-center animate-in fade-in duration-1000">
           <Spinner className="w-10 h-10" />
         </div>
       )}
@@ -103,7 +103,7 @@ export default function EpisodesList({
             {season.overview?.length > 0 ? season.overview : overviewFallback}
           </Muted>
 
-          <div className="space-y-2 overflow-y-auto flex-1 no-scrollbar animate-in fade-in duration-500">
+          <div className="overflow-y-auto flex-1 no-scrollbar animate-in fade-in duration-500">
             {season.episodes
               .filter((e) => e.air_date !== null && e.runtime !== null)
               .map((episode) => {

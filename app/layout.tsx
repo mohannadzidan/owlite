@@ -37,7 +37,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body
         className={cn(
-          "flex flex-col bg-background text-foreground min-h-screen select-none",
+          "flex flex-col bg-background text-foreground min-h-screen select-none antialiased",
           fontSans.variable,
           fontSerif.variable,
           fontMono.variable,
