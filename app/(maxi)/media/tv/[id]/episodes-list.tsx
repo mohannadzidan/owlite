@@ -55,11 +55,11 @@ function EpisodeItem({ tmdbId, episode }: { tmdbId: number; episode: TmdbEpisode
           <div>
             <Image
               src={tmdbImageUrl("still", "w185", episode.still_path)}
-              className="rounded "
+              className="rounded w-[140px] h-[78px] object-cover"
               alt={episode.name}
               sizes="185px"
               width={140}
-              height={0.5 * 140}
+              height={78}
             />
             {progress && progress.total > 0 && (
               <Progress value={(progress.watched / progress.total) * 100} />

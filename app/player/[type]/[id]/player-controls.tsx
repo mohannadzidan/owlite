@@ -74,10 +74,13 @@ function PlayerControls({ className, children, style, ...props }: ComponentProps
 
 type TogglePlayProps = ComponentProps<"button"> & { onTogglePlay?: () => void };
 
-PlayerControls.PlayPause = function PlayPause({ className, ...props }: TogglePlayProps) {
+PlayerControls.PlayPause = function PlayPause({
+  className,
+  onTogglePlay,
+  ...props
+}: TogglePlayProps) {
   const playbackState = usePlayerStore((s) => s.playbackState);
   const isPlaying = playbackState === "playing";
-  const { onTogglePlay } = props;
 
   return (
     <button
@@ -120,11 +123,11 @@ function ScreenButton({
 
 PlayerControls.ScreenPlayPause = function ScreenPlayPause({
   className,
+  onTogglePlay,
   ...props
 }: TogglePlayProps) {
   const playbackState = usePlayerStore((s) => s.playbackState);
   const isPlaying = playbackState === "playing";
-  const { onTogglePlay } = props;
   return (
     <ScreenButton
       icon={isPlaying ? Pause : Play}
@@ -145,9 +148,9 @@ interface SkipComponentProps extends ComponentProps<"button"> {
 PlayerControls.ScreenRewind = function ScreenRewind({
   className,
   seconds = 10,
+  onSkip,
   ...props
 }: SkipComponentProps) {
-  const { onSkip } = props;
   return (
     <ScreenButton
       icon={RotateCcw}
@@ -167,9 +170,9 @@ PlayerControls.ScreenRewind = function ScreenRewind({
 PlayerControls.ScreenForward = function ScreenForward({
   className,
   seconds = 10,
+  onSkip,
   ...props
 }: SkipComponentProps) {
-  const { onSkip } = props;
   return (
     <ScreenButton
       icon={RotateCw}
@@ -214,13 +217,12 @@ PlayerControls.NextEpisode = function NextEpisode({
 
 PlayerControls.ProgressBar = function ProgressBar({
   className,
+  onSeek,
   ...props
 }: ComponentProps<"div"> & { onSeek?: (timeSeconds: number) => void }) {
   const currentTime = usePlayerStore((s) => s.currentTime);
   const duration = usePlayerStore((s) => s.duration);
   const buffered = usePlayerStore((s) => s.buffered);
-  const { onSeek } = props;
-
   const barRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const [dragRatio, setDragRatio] = useState<number | null>(null);
@@ -446,13 +448,13 @@ PlayerControls.Subtitles = function SubtitlesControl({
 
 PlayerControls.Quality = function Quality({
   className,
+  onQualityChange,
   ...props
 }: ComponentProps<"div"> & { onQualityChange?: (level: number) => void }) {
   const [open, setOpen] = useState(false);
   const qualityLevels = usePlayerStore((s) => s.qualityLevels);
   const activeQualityLevel = usePlayerStore((s) => s.activeQualityLevel);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { onQualityChange } = props;
 
   useEffect(() => {
     if (!open) return;
