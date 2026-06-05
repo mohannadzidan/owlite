@@ -6,15 +6,22 @@ import { Badge } from "@/components/ui/badge";
 import EpisodesList from "./episodes-list";
 import Muted from "@/components/typography/muted";
 import Heading from "@/components/typography/heading";
-import PlayButton from "../../../../../components/play-button";
+import PlayButton from "@/components/play-button";
 import { SubtitlesNavButton } from "@/components/subtitles-nav-button";
 
 const BACKDROP = "https://image.tmdb.org/t/p/w1280";
 
-export default async function TvDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function TvDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ season?: string }>;
+}) {
+  const [{ id }, { season }] = await Promise.all([params, searchParams]);
   const numId = Number(id);
   if (isNaN(numId)) notFound();
+  const initialSeason = season ? Number(season) : undefined;
 
   const details = await tmdb.tvShows.details(numId, ["credits", "episode_groups"]);
   if (!details || "error" in details) notFound();
@@ -90,6 +97,7 @@ export default async function TvDetailPage({ params }: { params: Promise<{ id: s
             tmdbId={numId}
             overviewFallback={details.overview}
             seasonsCount={details.number_of_seasons}
+            initialSeason={initialSeason}
           />
         </div>
       </div>

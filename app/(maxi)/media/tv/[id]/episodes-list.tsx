@@ -6,25 +6,22 @@ import Muted from "@/components/typography/muted";
 import { Button } from "@/components/ui/button";
 import {
   Item,
-  ItemActions,
   ItemContent,
   ItemDescription,
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
 import { tmdb, tmdbImageUrl } from "@/services/tmdb.service";
-import { ChevronRightIcon } from "lucide-react";
 import useSWR from "swr";
 import {
   Select,
   SelectContent,
   SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Heading from "@/components/typography/heading";
 import { Spinner } from "@/components/ui/spinner";
 import Link from "next/link";
@@ -36,14 +33,24 @@ export interface EpisodesListProps {
   tmdbId: number;
   overviewFallback?: string;
   seasonsCount: number;
+  initialSeason?: number;
 }
 
 export default function EpisodesList({
   tmdbId,
   overviewFallback,
   seasonsCount,
+  initialSeason,
 }: EpisodesListProps) {
-  const [seasonNumber, setSeasonNumber] = useState(1);
+  const [seasonNumber, setSeasonNumber] = useState(initialSeason ?? 1);
+
+  useEffect(() => {
+    if (initialSeason) return;
+    const cw = storage.getContinueWatching();
+    const entry = cw.find((e) => e.type === "tv" && e.id === tmdbId);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (entry && entry.type === "tv") setSeasonNumber(entry.season);
+  }, [initialSeason, tmdbId]);
   const {
     data: season,
     isLoading,
@@ -59,14 +66,14 @@ export default function EpisodesList({
   if (error) return <div className="flex items-center justify-center h-full"></div>;
   return (
     <>
-      <Heading className="mb-2 flex items-center justify-between text-white">
-        Episodes{" "}
+      <Heading className="mb-2 flex items-center gap-2 text-white">
+        Episodes <span>—</span>
         {seasonsCount > 1 && (
           <Select
             value={seasonNumber.toString()}
             onValueChange={(value) => setSeasonNumber(Number(value))}
           >
-            <SelectTrigger className="w-32 overflow-hidden">
+            <SelectTrigger className="w-32 overflow-hidden text-xs font-semibold uppercase tracking-widest -ms-1.5">
               <SelectValue placeholder="Select season" />
             </SelectTrigger>
             <SelectContent>

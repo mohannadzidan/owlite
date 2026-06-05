@@ -120,19 +120,38 @@ function FavoriteSubtitleApplier({
   }, [imdbId, tmdbId, season, episode]);
 
   useEffect(() => {
-    if (appliedRef.current || tracks.length === 0 || activeExternalTrackId) return;
     const preferred = storage.getPreferences().subtitleLanguage;
-    const favTracks = tracks.filter((t) => t.isFavorite && t.provider === "local");
-    const target =
-      (preferred ? favTracks.find((t) => t.language === preferred) : null) ?? favTracks[0] ?? null;
-    if (!target) return;
+    const favTrack =
+      tracks.filter((t) => t.isFavorite && t.provider === "local" && t.language === preferred)[0] ??
+      null;
+    if (!favTrack) return;
+    if (
+      appliedRef.current ||
+      tracks.length === 0 ||
+      !activeExternalTrackId ||
+      activeExternalTrackId !== favTrack.id
+    ) {
+      console.log(
+        "skip Auto-applying subtitle track",
+        appliedRef.current,
+        tracks.length,
+        activeExternalTrackId,
+      );
+      return;
+    }
+    console.log(
+      "Auto-applying subtitle track",
+      appliedRef.current,
+      tracks.length,
+      activeExternalTrackId,
+    );
+
     appliedRef.current = true;
-    setExternalSubtitleUrl(target.download_url);
-    setActiveExternalTrackId(target.id);
-    storage.patchPreferences({ subtitleLanguage: target.language });
-    storage.saveSubtitles(tmdbId, target.id, season, episode);
+    storage.saveSubtitles(tmdbId, favTrack.id, season, episode);
+    setExternalSubtitleUrl(favTrack.download_url);
+    setActiveExternalTrackId(favTrack.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tracks, activeExternalTrackId]);
+  }, [tracks, activeExternalTrackId, tracks.length]);
 
   return null;
 }
