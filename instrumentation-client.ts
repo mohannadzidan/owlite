@@ -264,7 +264,7 @@ function handleUnhandledRejection(event: PromiseRejectionEvent) {
 }
 
 try {
-  if (typeof window !== "undefined") {
+  if (false &&typeof window !== "undefined") {
     getOrCreateSessionId();
     patchConsoleMethods();
     window.addEventListener("error", handleError);
