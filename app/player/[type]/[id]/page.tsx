@@ -15,6 +15,7 @@ import { SubtitleTrack } from "@/lib/types";
 import { shortcutsScopes, useShortcut, useShortcutScope } from "@/lib/shortcuts";
 import { PlayerControls } from "@/app/player/[type]/[id]/player-controls";
 import { storage } from "@/lib/storage";
+import { subtitles as subtitlesService } from "@/services/api.service";
 import { ArrowLeft } from "lucide-react";
 import FullScreenButton from "@/components/fullscreen-button";
 import { paths } from "@/lib/paths";
@@ -86,6 +87,52 @@ function ProgressSaver({
     }, 5_000);
     return () => clearInterval(id);
   }, [playbackState, tmdbId, season, episode]);
+
+  return null;
+}
+
+function FavoriteSubtitleApplier({
+  tmdbId,
+  imdbId,
+  season,
+  episode,
+}: {
+  tmdbId: number;
+  imdbId?: string;
+  season?: number;
+  episode?: number;
+}) {
+  const activeExternalTrackId = usePlayerStore((s) => s.activeExternalTrackId);
+  const setExternalSubtitleUrl = usePlayerStore((s) => s.setExternalSubtitleUrl);
+  const setActiveExternalTrackId = usePlayerStore((s) => s.setActiveExternalTrackId);
+
+  const { data } = useSWR(
+    imdbId || tmdbId ? ["subtitles", imdbId, tmdbId, season, episode] : null,
+    () => subtitlesService.search({ imdb_id: imdbId, tmdb_id: tmdbId, season, episode }),
+  );
+
+  const tracks: SubtitleTrack[] = data && !("error" in data) ? (data.tracks ?? []) : [];
+
+  const appliedRef = useRef(false);
+
+  useEffect(() => {
+    appliedRef.current = false;
+  }, [imdbId, tmdbId, season, episode]);
+
+  useEffect(() => {
+    if (appliedRef.current || tracks.length === 0 || activeExternalTrackId) return;
+    const preferred = storage.getPreferences().subtitleLanguage;
+    const favTracks = tracks.filter((t) => t.isFavorite && t.provider === "local");
+    const target =
+      (preferred ? favTracks.find((t) => t.language === preferred) : null) ?? favTracks[0] ?? null;
+    if (!target) return;
+    appliedRef.current = true;
+    setExternalSubtitleUrl(target.download_url);
+    setActiveExternalTrackId(target.id);
+    storage.patchPreferences({ subtitleLanguage: target.language });
+    storage.saveSubtitles(tmdbId, target.id, season, episode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tracks, activeExternalTrackId]);
 
   return null;
 }
@@ -178,6 +225,7 @@ export function PlayerUI({
   return (
     <>
       <ProgressSaver tmdbId={tmdbId} season={season} episode={episode} />
+      <FavoriteSubtitleApplier tmdbId={tmdbId} imdbId={imdbId} season={season} episode={episode} />
       <PlayerControls>
         {/* Semi-transparent gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/60 pointer-events-none" />

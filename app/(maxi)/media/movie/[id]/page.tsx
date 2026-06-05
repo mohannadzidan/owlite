@@ -1,15 +1,12 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { Play, PlayIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { tmdb } from "@/services/tmdb.service";
 import dayjs from "dayjs";
 import { Badge } from "@/components/ui/badge";
 import Muted from "@/components/typography/muted";
 import Heading from "@/components/typography/heading";
-import Link from "next/link";
-import { paths } from "@/lib/paths";
 import PlayButton from "@/components/play-button";
+import { SubtitlesNavButton } from "@/components/subtitles-nav-button";
 
 const BACKDROP = "https://image.tmdb.org/t/p/w1280";
 const POSTER = "https://image.tmdb.org/t/p/w500";
@@ -63,9 +60,10 @@ export default async function MovieDetailPage({ params }: { params: Promise<{ id
               </Badge>
             ))}
           </section>
-          <section className=" my-4 w-auto">
+          <section className="my-4 flex items-center gap-3 flex-wrap">
             <PlayButton type="movie" tmdbId={details.id} />
           </section>
+          <SubtitlesNavButton type="movie" id={details.id} />
           {details.overview && (
             <p className="mb-6 max-w-xl text-white/80 leading-relaxed line-clamp-4">
               {details.overview}

@@ -299,10 +299,7 @@ PlayerControls.ProgressBar = function ProgressBar({
       aria-valuemin={0}
       aria-valuemax={Math.round(duration)}
       tabIndex={0}
-      className={cn(
-        "player-progress-bar relative flex items-center h-5 cursor-pointer",
-        className,
-      )}
+      className={cn("player-progress-bar relative flex items-center h-5 cursor-pointer", className)}
       onMouseDown={handleMouseDown}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}

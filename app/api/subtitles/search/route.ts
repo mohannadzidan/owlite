@@ -1,6 +1,10 @@
+import path from "path";
+import { eq, isNull, and } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 import type { SubtitleTrack } from "@/lib/types";
-import { subtitles } from "@/services/opensubtitles.service";
+import { subtitles as openSubtitlesService } from "@/services/opensubtitles.service";
+import { db } from "@/db";
+import { subtitles as subtitlesTable } from "@/db/schema";
 
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as {
@@ -11,24 +15,74 @@ export async function POST(request: NextRequest) {
     language?: string;
   };
 
-  if (!process.env.OPENSUBTITLES_API_KEY) return NextResponse.json({ tracks: [] });
+  const { tmdb_id, season, episode } = body;
 
-  let data;
-  try {
-    data = await subtitles.search(body);
-  } catch {
-    return NextResponse.json({ tracks: [] });
+  // Build context suffix for OS download URLs so the download route can record to DB
+  const contextParams = new URLSearchParams();
+  if (tmdb_id) contextParams.set("tmdb_id", String(tmdb_id));
+  if (season != null) contextParams.set("season", String(season));
+  if (episode != null) contextParams.set("episode", String(episode));
+  if (body.language) contextParams.set("language", body.language);
+  // Fetch local subtitles from DB
+  const localTracks: SubtitleTrack[] = [];
+  if (tmdb_id) {
+    const conditions = [eq(subtitlesTable.tmdbId, tmdb_id)];
+    if (season != null) {
+      conditions.push(eq(subtitlesTable.season, season));
+    } else {
+      conditions.push(isNull(subtitlesTable.season));
+    }
+    if (episode != null) {
+      conditions.push(eq(subtitlesTable.episode, episode));
+    } else {
+      conditions.push(isNull(subtitlesTable.episode));
+    }
+
+    const rows = await db
+      .select()
+      .from(subtitlesTable)
+      .where(and(...conditions));
+
+    for (const row of rows) {
+      const basename = path.basename(row.file);
+      localTracks.push({
+        id: `local-${row.id}`,
+        language: row.language,
+        format: "vtt",
+        download_url: `/api/subtitles/stream?cache_key=${encodeURIComponent(basename)}`,
+        release_name: path.basename(row.file, path.extname(row.file)),
+        provider: "local",
+        isFavorite: row.isFavorite,
+      });
+    }
   }
 
-  if ("error" in data) return NextResponse.json({ tracks: [] });
+  // Fetch OpenSubtitles tracks
+  const osTracks: SubtitleTrack[] = [];
+  if (process.env.OPENSUBTITLES_API_KEY) {
+    try {
+      const data = await openSubtitlesService.search(body);
+      if (!("error" in data)) {
+        for (const item of data.data ?? []) {
+          const fileId = item.attributes.files[0]?.file_id;
+          if (!fileId) continue;
+          const lang = item.attributes.language;
+          const trackContextParams = new URLSearchParams(contextParams);
+          trackContextParams.set("language", lang);
+          osTracks.push({
+            id: String(fileId),
+            language: lang,
+            format: item.attributes.format ?? "srt",
+            download_url: `/api/subtitles/download?file_id=${fileId}&${trackContextParams.toString()}`,
+            release_name: item.attributes.release,
+            provider: "open_subtitles",
+          });
+        }
+      }
+    } catch {
+      // Graceful degradation — local subtitles still returned
+    }
+  }
 
-  const tracks: SubtitleTrack[] = (data.data ?? []).map((item) => ({
-    id: String(item.attributes.files[0]?.file_id ?? item.id),
-    language: item.attributes.language,
-    format: item.attributes.format ?? "srt",
-    download_url: `/api/subtitles/download?file_id=${item.attributes.files[0]?.file_id}`,
-    release_name: item.attributes.release,
-  }));
-
-  return NextResponse.json({ tracks });
+  return NextResponse.json({ tracks: [...localTracks, ...osTracks] });
 }

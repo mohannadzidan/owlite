@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Minus, Plus } from "lucide-react";
+import { Globe, HardDrive, Minus, Plus } from "lucide-react";
 import useSWR from "swr";
 import type { SubtitleTrack } from "@/lib/types";
 import { storage } from "@/lib/storage";
@@ -243,11 +243,18 @@ export function SubtitlesPanel({
                   )}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm text-white truncate min-w-0">
-                      {track.release_name
-                        ? track.release_name.slice(0, 28)
-                        : `OpenSubtitles ${track.format.toUpperCase()}`}
-                    </p>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {track.provider === "local" ? (
+                        <HardDrive className="size-3 shrink-0 text-white/50" />
+                      ) : (
+                        <Globe className="size-3 shrink-0 text-white/50" />
+                      )}
+                      <p className="text-sm text-white truncate">
+                        {track.release_name
+                          ? track.release_name.slice(0, 28)
+                          : `OpenSubtitles ${track.format.toUpperCase()}`}
+                      </p>
+                    </div>
                     {isDownloading && <span className="text-white/40 text-xs shrink-0">…</span>}
                     {isActive && !isDownloading && (
                       <span className="w-2 h-2 rounded-full bg-green-400 shrink-0" />

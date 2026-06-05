@@ -22,7 +22,13 @@ function player(
 function details(type: "tv" | "movie", id: string | number): string {
   return `/media/${type}/${id}`;
 }
+
+function subtitles(type: "tv" | "movie", id: string | number): string {
+  return `/media/${type}/${id}/subtitles`;
+}
+
 export const paths = {
   player,
   details,
+  subtitles,
 };

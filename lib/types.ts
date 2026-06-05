@@ -40,4 +40,6 @@ export interface SubtitleTrack {
   format: string;
   download_url: string;
   release_name?: string;
+  provider: "local" | "open_subtitles";
+  isFavorite?: boolean;
 }

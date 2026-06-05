@@ -34,11 +34,33 @@ async function fetchBestStreamUrl(
       screenHeight: screenSize,
       userAgent,
     });
-    console.log("Resolved imdb id:", imdbId, "media type:", mediaType, "season:", season, "episode:", episode, "file name:", body.data!.file_name);
+    console.log(
+      "Resolved imdb id:",
+      imdbId,
+      "media type:",
+      mediaType,
+      "season:",
+      season,
+      "episode:",
+      episode,
+      "file name:",
+      body.data!.file_name,
+    );
     return { url: scoredStreams[0].url, fileName: body.data!.file_name! };
   } catch (e) {
     console.error("Error selecting best stream", e);
-    console.log("Resolved imdb id:", imdbId, "media type:", mediaType, "season:", season, "episode:", episode, "file name:", body.data!.file_name);
+    console.log(
+      "Resolved imdb id:",
+      imdbId,
+      "media type:",
+      mediaType,
+      "season:",
+      season,
+      "episode:",
+      episode,
+      "file name:",
+      body.data!.file_name,
+    );
     return { url: streamUrls.at(-1)!, fileName: body.data!.file_name! };
   }
 }
