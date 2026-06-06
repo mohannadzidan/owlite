@@ -159,7 +159,10 @@ export default function EpisodesList({
             {season.overview?.length > 0 ? season.overview : overviewFallback}
           </Muted>
 
-          <div className="overflow-y-auto flex-1 no-scrollbar animate-in fade-in duration-500">
+          <div
+            className="overflow-y-auto flex-1 no-scrollbar animate-in fade-in duration-500"
+            data-scrollable
+          >
             {season.episodes
               .filter((e) => e.air_date !== null && e.runtime !== null)
               .map((episode) => (

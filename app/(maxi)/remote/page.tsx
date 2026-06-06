@@ -5,7 +5,7 @@ import { PairingDialog } from "@/components/remote/pairing-dialog";
 
 export default function RemotePage() {
   return (
-    <div className="min-h-screen w-full container max-w-2xl mx-auto">
+    <main className="pt-16 p-8 flex flex-col h-screen">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-semibold">Remote Control</h1>
         <PairingDialog />
@@ -17,6 +17,6 @@ export default function RemotePage() {
         </h2>
         <DeviceList />
       </section>
-    </div>
+    </main>
   );
 }

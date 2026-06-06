@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         ...(referer ? { Referer: referer, Origin: "https://brightpathsignals.com" } : {}),
         ...(rangeHeader ? { Range: rangeHeader } : {}),
       },
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(10000),
     });
   } catch {
     return new NextResponse("Proxy fetch failed", { status: 502 });

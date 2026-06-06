@@ -27,8 +27,18 @@ function subtitles(type: "tv" | "movie", id: string | number): string {
   return `/media/${type}/${id}/subtitles`;
 }
 
+function remote(): string {
+  return `/remote`;
+}
+
+function remoteControls(): string {
+  return `/remote/controls`;
+}
+
 export const paths = {
   player,
   details,
   subtitles,
+  remote,
+  remoteControls,
 };

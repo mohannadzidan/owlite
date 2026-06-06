@@ -1,7 +1,8 @@
 import { request as requestFn } from "./request";
 
 const VAPLAYER_API_URL = process.env.VAPLAYER_API_URL ?? "https://streamdata.vaplayer.ru/api.php";
-const BRIGHTPATH_BASE = "https://brightpathsignals.com/embed";
+const JUMP_SERVER = "https://nextgencloudfabric.com";
+const JUMP_SERVER_BASE = JUMP_SERVER + "/embed";
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
@@ -12,8 +13,8 @@ function buildReferer(
   episode?: number,
 ): string {
   return mediaType === "tv" && season != null && episode != null
-    ? `${BRIGHTPATH_BASE}/tv/${imdbId}/${season}/${episode}`
-    : `${BRIGHTPATH_BASE}/movie/${imdbId}`;
+    ? `${JUMP_SERVER_BASE}/tv/${imdbId}/${season}/${episode}`
+    : `${JUMP_SERVER_BASE}/movie/${imdbId}`;
 }
 
 export interface VaplayerResponse {
@@ -37,7 +38,7 @@ export const streams = {
       headers: {
         "User-Agent": UA,
         Referer: ref,
-        Origin: "https://brightpathsignals.com",
+        Origin: JUMP_SERVER,
         Accept: "application/json, text/javascript, */*; q=0.01",
         "X-Requested-With": "XMLHttpRequest",
       },
@@ -53,7 +54,7 @@ export const streams = {
         headers: {
           "User-Agent": UA,
           Referer: ref,
-          Origin: "https://brightpathsignals.com",
+          Origin: JUMP_SERVER,
         },
         signal,
       });

@@ -1,5 +1,6 @@
 "use client";
 
+import { connectionManager } from "@/lib/connection-manager";
 import { useRemoteControlStore } from "@/lib/remote-control-store";
 import { DeviceItem } from "@/components/remote/device-item";
 
@@ -17,7 +18,11 @@ export function DeviceList() {
   return (
     <div className="flex flex-col gap-2">
       {pairings.map((p) => (
-        <DeviceItem key={p.pairId} pairing={p} />
+        <DeviceItem
+          key={p.pairId}
+          pairing={p}
+          onRemove={() => connectionManager.removePairing(p.pairId)}
+        />
       ))}
     </div>
   );

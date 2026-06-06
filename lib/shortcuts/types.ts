@@ -34,6 +34,7 @@ export interface ShortcutStore {
   disable(): void;
   enable(): void;
   dispatch(event: KeyboardEvent): void;
+  triggerById(id: string): void;
 }
 
 export interface ComboUtils {

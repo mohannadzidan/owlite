@@ -1,6 +1,6 @@
 "use client";
 
-import { Keyboard, RotateCcw } from "lucide-react";
+import { BadgeCheckIcon, ChevronRightIcon, Keyboard, RotateCcw } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { SHORTCUTS, SHORTCUTS_SCOPES } from "@/lib/constants/shortcuts";
@@ -18,6 +18,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item";
+import Link from "next/link";
+import { paths } from "@/lib/paths";
 
 // ── Metadata ──────────────────────────────────────────────────────────────────
 
@@ -177,32 +180,28 @@ function ShortcutRow({
 
   return (
     <div className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={() => onCapture(shortcut)}
-        className={cn(
-          "flex-1 flex items-center justify-between gap-4 rounded-xl px-5 py-4 min-h-[3.5rem]",
-          "bg-card hover:bg-accent focus-visible:bg-accent outline-none transition-colors",
-          "focus-visible:ring-2 focus-visible:ring-primary ring-inset",
-        )}
-      >
-        <span className="text-base font-medium text-left">{label}</span>
-        <ComboDisplay combo={combo} />
-      </button>
-      {isModified && (
-        <button
-          type="button"
-          title="Reset to default"
-          onClick={() => register({ ...shortcut, combo: defaultCombo })}
-          className={cn(
-            "shrink-0 p-2.5 rounded-xl text-muted-foreground hover:text-foreground",
-            "hover:bg-accent transition-colors",
-            "focus-visible:ring-2 focus-visible:ring-primary outline-none",
-          )}
-        >
-          <RotateCcw className="h-4 w-4" />
+      <Item variant="muted" className="hover:bg-muted" size="sm" asChild>
+        <button type="button" onClick={() => onCapture(shortcut)}>
+          <ItemContent className="text-base text-start">{label}</ItemContent>
+          <ItemActions>
+            <ComboDisplay combo={combo} />
+            {isModified && (
+              <button
+                type="button"
+                title="Reset to default"
+                onClick={() => register({ ...shortcut, combo: defaultCombo })}
+                className={cn(
+                  "shrink-0 p-2.5 rounded-xl text-muted-foreground hover:text-foreground",
+                  "hover:bg-accent transition-colors",
+                  "focus-visible:ring-2 focus-visible:ring-primary outline-none",
+                )}
+              >
+                <RotateCcw className="h-4 w-4" />
+              </button>
+            )}
+          </ItemActions>
         </button>
-      )}
+      </Item>
     </div>
   );
 }
@@ -258,7 +257,7 @@ export default function SettingsPage() {
   }, {});
 
   return (
-    <>
+    <main className="pt-16 p-8 flex flex-col min-h-screen">
       {capturing && <CaptureOverlay shortcut={capturing} onClose={() => setCapturing(null)} />}
 
       <div className="min-h-screen w-full container max-w-4xl mx-auto">
@@ -267,6 +266,29 @@ export default function SettingsPage() {
 
         {/* Content */}
         <div className="flex flex-col gap-12">
+          <section className="flex flex-col gap-8">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                  <Keyboard className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold leading-tight">Remote</h2>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Configure remote devices and remote controls
+                  </p>
+                </div>
+              </div>
+            </div>
+            <Item variant="muted" className="hover:bg-muted" size="sm" asChild>
+              <Link href={paths.remote()}>
+                <ItemContent className="text-base">Configuration</ItemContent>
+                <ItemActions>
+                  <ChevronRightIcon className="size-4" />
+                </ItemActions>
+              </Link>
+            </Item>
+          </section>
           <section className="flex flex-col gap-8">
             {/* Section header */}
             <div className="flex items-start justify-between gap-4">
@@ -308,6 +330,6 @@ export default function SettingsPage() {
           </section>
         </div>
       </div>
-    </>
+    </main>
   );
 }

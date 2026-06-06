@@ -9,10 +9,12 @@ import {
 } from "@/lib/pairings-storage";
 import {
   getPairingStatus,
+  type ConnectionType,
   type PairingRecord,
   type PairingStatus,
   useRemoteControlStore,
 } from "@/lib/remote-control-store";
+import type { RemoteMessage } from "@/lib/remote-messages";
 import { remoteControlService } from "@/services/remote-control.service";
 import type SimplePeer from "simple-peer";
 
@@ -31,10 +33,68 @@ function toRecord(status: PairingStatus) {
   });
 }
 
+type CandidateStats = { candidateType?: string; address?: string; ip?: string } | undefined;
+
+// Chrome obfuscates local IPs as mDNS .local names; treat those and "host" type as local.
+function isLocalCandidate(c: CandidateStats): boolean {
+  if (!c) return false;
+  if (c.candidateType === "host") return true;
+  const addr = c.address ?? c.ip ?? "";
+  return (
+    addr.endsWith(".local") ||
+    /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|127\.|::1$|fd[0-9a-f]{2}:)/i.test(addr)
+  );
+}
+
+async function detectConnectionType(peer: SimplePeer.Instance): Promise<ConnectionType> {
+  const pc = (peer as unknown as { _pc?: RTCPeerConnection })._pc;
+  if (!pc) return "internet";
+
+  try {
+    const stats = await pc.getStats();
+    let result: ConnectionType = "internet";
+
+    stats.forEach((report) => {
+      if (report.type !== "candidate-pair") return;
+      const pair = report as unknown as {
+        state?: string;
+        localCandidateId: string;
+        remoteCandidateId: string;
+      };
+      // "succeeded" means the connectivity check passed — this is the active pair.
+      // "nominated" is only set once ICE reaches "completed", not just "connected".
+      if (pair.state !== "succeeded") return;
+
+      const local = stats.get(pair.localCandidateId) as CandidateStats;
+      const remote = stats.get(pair.remoteCandidateId) as CandidateStats;
+
+      if (local?.candidateType === "relay" || remote?.candidateType === "relay") {
+        result = "relay";
+      } else if (isLocalCandidate(local) && isLocalCandidate(remote)) {
+        result = "lan";
+      }
+    });
+
+    return result;
+  } catch {
+    return "internet";
+  }
+}
+
 class ConnectionManager {
   private initialized = false;
   private peers = new Map<string, ManagedPeer>();
   private presencePolls = new Map<string, ReturnType<typeof setInterval>>();
+  private pingIntervals = new Map<string, ReturnType<typeof setInterval>>();
+  private messageHandler: ((pairId: string, msg: RemoteMessage) => void) | null = null;
+
+  setMessageHandler(handler: (pairId: string, msg: RemoteMessage) => void) {
+    this.messageHandler = handler;
+  }
+
+  clearMessageHandler() {
+    this.messageHandler = null;
+  }
 
   async initialize() {
     if (this.initialized) return;
@@ -133,6 +193,34 @@ class ConnectionManager {
       peer.on("connect", () => {
         clearInterval(pollInterval);
         useRemoteControlStore.getState().setPairingStatus(p.pairId, "connected");
+
+        if (!isInitiator && typeof window !== "undefined") {
+          // Acceptor (TV) sends its viewport dimensions so the initiator can map trackpad coords
+          peer.send(
+            JSON.stringify({
+              type: "handshake",
+              screenWidth: window.innerWidth,
+              screenHeight: window.innerHeight,
+            }),
+          );
+        }
+
+        if (isInitiator) {
+          // Start pinging every 2s to measure RTT
+          const pingInterval = setInterval(() => {
+            if (!peer.destroyed) {
+              peer.send(JSON.stringify({ type: "ping", sentAt: Date.now() }));
+            }
+          }, 2_000);
+          this.pingIntervals.set(p.pairId, pingInterval);
+
+          // Detect connection type once ICE has settled
+          setTimeout(() => {
+            detectConnectionType(peer).then((connectionType) => {
+              useRemoteControlStore.getState().setPairingStats(p.pairId, { connectionType });
+            });
+          }, 1_000);
+        }
       });
 
       peer.on("close", () => {
@@ -145,7 +233,25 @@ class ConnectionManager {
       });
 
       peer.on("data", (data: Uint8Array) => {
-        window.alert(data.toString());
+        try {
+          const msg = JSON.parse(data.toString()) as RemoteMessage;
+
+          if (msg.type === "handshake") {
+            useRemoteControlStore
+              .getState()
+              .setPairingScreenSize(p.pairId, msg.screenWidth, msg.screenHeight);
+          } else if (msg.type === "ping") {
+            // Echo back so the initiator can measure RTT
+            peer.send(JSON.stringify({ type: "pong", sentAt: msg.sentAt }));
+          } else if (msg.type === "pong") {
+            const latencyMs = Date.now() - msg.sentAt;
+            useRemoteControlStore.getState().setPairingStats(p.pairId, { latencyMs });
+          } else {
+            this.messageHandler?.(p.pairId, msg);
+          }
+        } catch {
+          // ignore malformed messages
+        }
       });
 
       const pollInterval = setInterval(() => {
@@ -166,10 +272,16 @@ class ConnectionManager {
     clearInterval(existing.pollInterval);
     existing.peer.destroy();
     this.peers.delete(pairId);
+
+    const pingInterval = this.pingIntervals.get(pairId);
+    if (pingInterval) {
+      clearInterval(pingInterval);
+      this.pingIntervals.delete(pairId);
+    }
   }
 
-  sendMessage(pairId: string, message: string) {
-    this.peers.get(pairId)?.peer.send(message);
+  sendRemoteMessage(pairId: string, msg: RemoteMessage) {
+    this.peers.get(pairId)?.peer.send(JSON.stringify(msg));
   }
 
   async removePairing(pairId: string) {

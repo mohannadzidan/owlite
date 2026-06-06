@@ -118,6 +118,17 @@ export const shortcutsStore = create<ShortcutStore>((set, get) => ({
       break;
     }
   },
+
+  triggerById(id) {
+    const state = get();
+    if (!state.enabled) return;
+    const shortcut = state.shortcuts[id];
+    if (!shortcut) return;
+    // Bypasses scope and combo resolution — remote button presses are explicit commands
+    const handlers = state.handlers[shortcut.scope]?.[id] ?? [];
+    const syntheticEvent = new KeyboardEvent("keyup");
+    handlers.forEach((h) => h(syntheticEvent));
+  },
 }));
 
 export const useShortcutStore = shortcutsStore;

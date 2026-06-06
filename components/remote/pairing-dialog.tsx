@@ -15,20 +15,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 
-function ShareCodeTab({ onClose }: { onClose: () => void }) {
-  const pendingCode = useRemoteControlStore((s) => s.pendingSessionCode);
+function ShareCodeTab({
+  pendingCode,
+  onGenerateCode,
+  onClose,
+}: {
+  pendingCode: string | null;
+  onGenerateCode: () => Promise<void>;
+  onClose: () => void;
+}) {
   const [codeGenerated, setCodeGenerated] = useState(false);
 
   // Close when pairing completes (pendingCode cleared after being set)
   useEffect(() => {
-    if (codeGenerated && pendingCode === null) {
-      onClose();
-    }
+    if (codeGenerated && !pendingCode) onClose();
   }, [pendingCode, codeGenerated, onClose]);
 
   async function handleShare() {
+    await onGenerateCode();
     setCodeGenerated(true);
-    await connectionManager.createSession();
   }
 
   if (!codeGenerated) {
@@ -46,7 +51,7 @@ function ShareCodeTab({ onClose }: { onClose: () => void }) {
     <div className="flex flex-col items-center gap-4 py-4">
       <p className="text-muted-foreground text-sm">Show this code on the remote device</p>
       {pendingCode ? (
-        <p className="font-mono text-5xl font-bold tracking-widest">{pendingCode}</p>
+        <p className="font-mono text-5xl font-bold tracking-widest select-text">{pendingCode}</p>
       ) : (
         <div className="h-16 flex items-center">
           <p className="text-muted-foreground animate-pulse text-sm">Paired! Connecting…</p>
@@ -57,7 +62,13 @@ function ShareCodeTab({ onClose }: { onClose: () => void }) {
   );
 }
 
-function EnterCodeTab({ onClose }: { onClose: () => void }) {
+function EnterCodeTab({
+  onConnect,
+  onClose,
+}: {
+  onConnect: (code: string) => Promise<void>;
+  onClose: () => void;
+}) {
   const [input, setInput] = useState("");
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +79,7 @@ function EnterCodeTab({ onClose }: { onClose: () => void }) {
     setConnecting(true);
     setError(null);
     try {
-      await connectionManager.acceptSession(code);
+      await onConnect(code);
       onClose();
     } catch {
       setError("Invalid or expired code. Try again.");
@@ -100,7 +111,10 @@ function EnterCodeTab({ onClose }: { onClose: () => void }) {
   );
 }
 
+// PairingDialog is the sole owner of connectionManager calls in this feature.
+// Sub-tabs are presentational — they emit callbacks, this component wires them to services.
 export function PairingDialog() {
+  const pendingCode = useRemoteControlStore((s) => s.pendingSessionCode);
   const [open, setOpen] = useState(false);
 
   function handleClose() {
@@ -129,10 +143,17 @@ export function PairingDialog() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="share">
-            <ShareCodeTab onClose={handleClose} />
+            <ShareCodeTab
+              pendingCode={pendingCode}
+              onGenerateCode={() => connectionManager.createSession().then(() => undefined)}
+              onClose={handleClose}
+            />
           </TabsContent>
           <TabsContent value="enter">
-            <EnterCodeTab onClose={handleClose} />
+            <EnterCodeTab
+              onConnect={connectionManager.acceptSession.bind(connectionManager)}
+              onClose={handleClose}
+            />
           </TabsContent>
         </Tabs>
       </DialogContent>

@@ -1,10 +1,10 @@
 "use client";
 
-import { connectionManager } from "@/lib/connection-manager";
 import type { PairingRecord } from "@/lib/remote-control-store";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { Gamepad2, X } from "lucide-react";
+import Link from "next/link";
 
 function StatusBadge({ status }: { status: PairingRecord["status"] }) {
   return (
@@ -29,17 +29,15 @@ function StatusBadge({ status }: { status: PairingRecord["status"] }) {
   );
 }
 
-export function DeviceItem({ pairing }: { pairing: PairingRecord }) {
+export function DeviceItem({
+  pairing,
+  onRemove,
+}: {
+  pairing: PairingRecord;
+  onRemove: () => void;
+}) {
   const roleLabel =
     pairing.role === "initiator" ? "Controls this device" : "Controlled by this device";
-
-  function handleRemove() {
-    connectionManager.removePairing(pairing.pairId);
-  }
-
-  function handleSendTest() {
-    connectionManager.sendMessage(pairing.pairId, "Hello from remote!");
-  }
 
   return (
     <div className="flex items-center gap-4 rounded-xl bg-card px-5 py-4">
@@ -51,8 +49,11 @@ export function DeviceItem({ pairing }: { pairing: PairingRecord }) {
       <StatusBadge status={pairing.status} />
 
       {pairing.status === "connected" && pairing.role === "initiator" && (
-        <Button size="sm" variant="secondary" onClick={handleSendTest}>
-          Send Test
+        <Button size="sm" variant="secondary" asChild>
+          <Link href={`/remote/controls?pairId=${pairing.pairId}`}>
+            <Gamepad2 className="h-4 w-4 mr-1.5" />
+            Control
+          </Link>
         </Button>
       )}
 
@@ -60,7 +61,7 @@ export function DeviceItem({ pairing }: { pairing: PairingRecord }) {
         size="icon"
         variant="ghost"
         className="shrink-0 text-muted-foreground"
-        onClick={handleRemove}
+        onClick={onRemove}
       >
         <X className="h-4 w-4" />
       </Button>
