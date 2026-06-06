@@ -3,6 +3,7 @@
 import { Profile } from "@/lib/profile-types";
 import { profileService } from "@/services/profile.service";
 import { Edit2, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -42,7 +43,7 @@ export default function ProfilesPage() {
   const [editName, setEditName] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState("");
-  const [newSeed, setNewSeed] = useState(() => crypto.randomUUID());
+  const [newSeed, setNewSeed] = useState(() => nanoid());
   const [loading, setLoading] = useState(false);
   const newNameRef = useRef<HTMLInputElement>(null);
 
@@ -69,7 +70,7 @@ export default function ProfilesPage() {
     setProfiles((prev) => [...prev, { ...created, avatarSeed: newSeed }]);
     setShowAdd(false);
     setNewName("");
-    setNewSeed(crypto.randomUUID());
+    setNewSeed(nanoid());
     setLoading(false);
   };
 
@@ -86,7 +87,7 @@ export default function ProfilesPage() {
   };
 
   const handleShuffleAvatar = async (id: string) => {
-    const seed = crypto.randomUUID();
+    const seed = nanoid();
     await profileService.updateProfile(id, { avatarSeed: seed });
     setProfiles((prev) => prev.map((p) => (p.id === id ? { ...p, avatarSeed: seed } : p)));
   };
@@ -188,7 +189,7 @@ export default function ProfilesPage() {
               <button
                 type="button"
                 title="Shuffle avatar"
-                onClick={() => setNewSeed(crypto.randomUUID())}
+                onClick={() => setNewSeed(nanoid())}
                 className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-muted flex items-center justify-center hover:bg-accent transition-colors"
               >
                 <RotateCcw size={12} />

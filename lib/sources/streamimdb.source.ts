@@ -17,15 +17,37 @@ async function fetchBestStreamUrl(
   let body;
   try {
     const result = await streams.urls(imdbId, mediaType, season, episode);
-    if ("error" in result) return null;
+    if ("error" in result) {
+      console.error("[streamimdb] Error fetching stream URLs:", result);
+      return null;
+    }
     body = result;
-  } catch {
+  } catch (error) {
+    console.error(
+      "Error fetching stream URLs for imdb id:",
+      imdbId,
+      "media type:",
+      mediaType,
+      error,
+    );
     return null;
   }
 
   const streamUrls = body?.data?.stream_urls;
 
-  if (!Array.isArray(streamUrls) || streamUrls.length === 0) return null;
+  if (!Array.isArray(streamUrls) || streamUrls.length === 0) {
+    console.warn(
+      "No stream URLs found for imdb id:",
+      imdbId,
+      "media type:",
+      mediaType,
+      "season:",
+      season,
+      "episode:",
+      episode,
+    );
+    return null;
+  }
   try {
     const scoredStreams = await selectBestStreams({
       m3u8Fetchers: streamUrls.map((url) =>
@@ -34,33 +56,9 @@ async function fetchBestStreamUrl(
       screenHeight: screenSize,
       userAgent,
     });
-    console.log(
-      "Resolved imdb id:",
-      imdbId,
-      "media type:",
-      mediaType,
-      "season:",
-      season,
-      "episode:",
-      episode,
-      "file name:",
-      body.data!.file_name,
-    );
     return { url: scoredStreams[0].url, fileName: body.data!.file_name! };
   } catch (e) {
     console.error("Error selecting best stream", e);
-    console.log(
-      "Resolved imdb id:",
-      imdbId,
-      "media type:",
-      mediaType,
-      "season:",
-      season,
-      "episode:",
-      episode,
-      "file name:",
-      body.data!.file_name,
-    );
     return { url: streamUrls.at(-1)!, fileName: body.data!.file_name! };
   }
 }
@@ -82,7 +80,15 @@ const streamImdbSource: VideoSource = {
       params.season,
       params.episode,
     );
-    if (!bestStream) return null;
+    if (!bestStream) {
+      console.warn(
+        "[streamimdb] Could not resolve stream for imdb id:",
+        imdbId,
+        "media type:",
+        params.media_type,
+      );
+      return null;
+    }
 
     const referer = streams.referer(imdbId, params.media_type, params.season, params.episode);
     const encoded = encodeProxy(bestStream.url, referer);

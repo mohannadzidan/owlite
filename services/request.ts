@@ -11,8 +11,17 @@ export async function request<T, C extends string = never>(
         },
       };
     }
-    const data = await response.json();
-    return data;
+    const text = await response.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      return {
+        error: {
+          code: "network_error",
+          message: `Invalid JSON response: url=${args[0]} status=${response.status} ${text}`,
+        },
+      };
+    }
   } catch (e) {
     console.error("Request error:", e);
     return {

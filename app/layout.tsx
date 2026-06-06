@@ -2,6 +2,9 @@ import { Geist_Mono, Indie_Flower, Inter, Lato, Patrick_Hand } from "next/font/g
 
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { CursorOverlay } from "@/components/remote/cursor-overlay";
+import { RemoteControlProvider } from "@/components/remote/remote-control-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 const fontSans = Lato({
   subsets: ["latin"],
@@ -40,7 +43,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           fontMono.variable,
         )}
       >
-        {children}
+        <RemoteControlProvider>
+          <Toaster />
+          {children}
+          <CursorOverlay />
+        </RemoteControlProvider>
       </body>
     </html>
   );

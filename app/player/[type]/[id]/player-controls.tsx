@@ -7,14 +7,12 @@ import { SubtitlesPanel } from "./subtitles-panel";
 import type { SubtitleTrack } from "@/lib/types";
 import { twMerge } from "tailwind-merge";
 import clsx, { ClassValue } from "clsx";
+import { cn } from "@/lib/utils";
+import { useRemoteControlStore } from "@/lib/remote-control-store";
 
 const HIDE_DELAY_MS = 1400;
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
 
 function formatTime(seconds: number): string {
   if (!isFinite(seconds) || isNaN(seconds)) return "0:00";
@@ -30,7 +28,8 @@ function formatTime(seconds: number): string {
 function PlayerControls({ className, children, style, ...props }: ComponentProps<"div">) {
   const [controlsVisible, setControlsVisible] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
+  const virtualCursorActive = useRemoteControlStore((s) => s.cursorActive);
+  console.log("virtualCursorActive", virtualCursorActive);
   // Show controls on any keydown or mouse move
   useEffect(() => {
     const showControls = () => {
@@ -50,7 +49,7 @@ function PlayerControls({ className, children, style, ...props }: ComponentProps
     <div
       className={cn(
         "player-controls-overlay z-10 transition-opacity duration-300 opacity-100 cursor-default",
-        !controlsVisible && "opacity-0 pointer-events-none cursor-none",
+        !virtualCursorActive && !controlsVisible && "opacity-0 pointer-events-none cursor-none",
         className,
       )}
       style={{
