@@ -3,11 +3,21 @@
 import { Trackpad } from "@/components/remote/trackpad";
 import { connectionManager } from "@/lib/connection-manager";
 import { type ConnectionType, useRemoteControlStore } from "@/lib/remote-control-store";
+import type { RemoteMessage } from "@/lib/remote-messages";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp, FastForward, Play, Rewind, SkipForward } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronUp,
+  FastForward,
+  Keyboard,
+  Play,
+  Rewind,
+  SkipForward,
+} from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, type ElementType } from "react";
+import { Suspense, useEffect, useRef, useState, type ElementType } from "react";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -97,9 +107,60 @@ function ControlsInner() {
     pairings.find((p) => p.pairId === pairId && p.role === "initiator") ??
     pairings.find((p) => p.role === "initiator" && p.status === "connected");
 
+  const [textInputActive, setTextInputActive] = useState(false);
+  const [tvInputValue, setTvInputValue] = useState("");
+  const [typingMode, setTypingMode] = useState(false);
+  const [typingKey, setTypingKey] = useState(0);
+  const lastValueRef = useRef("");
+
+  // Listen for text_input_focused / text_input_blurred coming from the TV
+  useEffect(() => {
+    connectionManager.setMessageHandler((_pairId, msg: RemoteMessage) => {
+      if (msg.type === "text_input_focused") {
+        setTvInputValue(msg.currentValue);
+        setTextInputActive(true);
+        // Re-initialise the relay input if typing mode is already open
+        lastValueRef.current = msg.currentValue;
+        setTypingKey((k) => k + 1);
+      } else if (msg.type === "text_input_blurred") {
+        setTextInputActive(false);
+        setTypingMode(false);
+      }
+    });
+    return () => connectionManager.clearMessageHandler();
+  }, []);
+
+  // Reset typing state when device goes offline
+  useEffect(() => {
+    if (pairing?.status !== "connected") {
+      setTextInputActive(false);
+      setTypingMode(false);
+    }
+  }, [pairing?.status]);
+
   function send(shortcutId: string) {
     if (!pairing) return;
     connectionManager.sendRemoteMessage(pairing.pairId, { type: "remote_action", shortcutId });
+  }
+
+  function sendMsg(msg: RemoteMessage) {
+    if (!pairing) return;
+    connectionManager.sendRemoteMessage(pairing.pairId, msg);
+  }
+
+  function handleTypingKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      sendMsg({ type: "remote_key", key: "Enter" });
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      dismissTyping();
+    }
+  }
+
+  function dismissTyping() {
+    setTypingMode(false);
+    lastValueRef.current = "";
   }
 
   if (!pairing || pairing.status !== "connected") {
@@ -118,7 +179,7 @@ function ControlsInner() {
   }
 
   return (
-    <main className="pt-16 flex flex-col h-screen overflow-hidden px-5 pb-6 gap-4">
+    <main className="pt-16 flex flex-col h-screen overflow-hidden px-5 pb-6 gap-4 relative">
       {/* Device info row */}
       <div className="shrink-0 flex items-center justify-between">
         <p className="font-semibold text-sm truncate">{pairing.peerDeviceName}</p>
@@ -139,8 +200,7 @@ function ControlsInner() {
         {/* Play / Pause — the central prominent button */}
         <button
           onClick={() => send("player.togglePlay")}
-          className="w-[5.5rem] h-[5.5rem] rounded-full bg-card flex items-center justify-center shrink-0 hover:bg-card/80 active:scale-95 transition-all shadow-[0_0_30px_hsl(var(--primary)/0.25)]"
-          style={{ border: "2px solid hsl(var(--primary) / 0.35)" }}
+          className="w-[5.5rem] h-[5.5rem] rounded-full bg-card border flex items-center justify-center shrink-0 hover:bg-card/80 active:scale-95 transition-all"
         >
           <Play className="h-9 w-9 text-primary" />
         </button>
@@ -155,28 +215,70 @@ function ControlsInner() {
         </div>
       </div>
 
-      {/* ── Trackpad with gradient ring ── */}
-      <div
-        className="flex-1 min-h-0 p-[2px] rounded-3xl"
-        style={{
-          background:
-            "linear-gradient(160deg, hsl(var(--primary) / 0.65) 0%, transparent 45%, hsl(var(--primary) / 0.35) 100%)",
-        }}
-      >
-        <Trackpad pairId={pairing.pairId} className="h-full rounded-[calc(1.5rem-2px)] border-0" />
+      {/* ── Trackpad ── */}
+      <div className="flex-1 min-h-0 rounded-3xl border relative">
+        <Trackpad pairId={pairing.pairId} className="h-full rounded-3xl border-0" />
+
+        {/* Keyboard indicator — appears when a text input is focused on TV */}
+        {textInputActive && !typingMode && (
+          <button
+            onClick={() => {
+              lastValueRef.current = tvInputValue;
+              setTypingKey((k) => k + 1);
+              setTypingMode(true);
+            }}
+            className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-card border px-3 py-1.5 rounded-full text-xs font-medium shadow-sm active:scale-95 transition-all select-none"
+          >
+            <Keyboard className="h-3.5 w-3.5" />
+            Tap to type
+          </button>
+        )}
       </div>
 
-      {/* ── Bottom row: font size + next episode ── */}
+      {/* ── Bottom row: font size + back + next episode ── */}
       <div className="shrink-0 grid grid-cols-4 gap-2">
         <ActionBtn label="A−" onPress={() => send("player.subtitlesFontDecrease")} />
         <ActionBtn label="A+" onPress={() => send("player.subtitlesFontIncrease")} />
         <ActionBtn
-          icon={SkipForward}
-          label="Next ep"
-          className="col-span-2"
-          onPress={() => send("player.nextEpisode")}
+          icon={ChevronLeft}
+          label="Back"
+          onPress={() => sendMsg({ type: "remote_key", key: "BrowserBack" })}
         />
+        <ActionBtn icon={SkipForward} label="Next ep" onPress={() => send("player.nextEpisode")} />
       </div>
+
+      {/* ── Typing overlay — slides up when typingMode is active ── */}
+      {typingMode && (
+        <div className="absolute inset-x-0 bottom-0 bg-background border-t px-4 py-3 flex items-center gap-3">
+          <input
+            key={typingKey}
+            autoFocus
+            type="text"
+            defaultValue={tvInputValue}
+            placeholder="Type here…"
+            className="flex-1 bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground"
+            onKeyDown={handleTypingKeyDown}
+            onChange={(e) => {
+              const newVal = e.currentTarget.value;
+              const lastVal = lastValueRef.current;
+              if (newVal.length > lastVal.length) {
+                const inserted = (e.nativeEvent as InputEvent).data ?? newVal.slice(lastVal.length);
+                if (inserted) sendMsg({ type: "remote_text", text: inserted });
+              } else if (newVal.length < lastVal.length) {
+                const n = lastVal.length - newVal.length;
+                for (let i = 0; i < n; i++) sendMsg({ type: "remote_key", key: "Backspace" });
+              }
+              lastValueRef.current = newVal;
+            }}
+          />
+          <button
+            onClick={dismissTyping}
+            className="text-sm text-primary font-medium px-2 py-1 active:opacity-70 transition-opacity select-none"
+          >
+            Done
+          </button>
+        </div>
+      )}
     </main>
   );
 }

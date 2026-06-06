@@ -116,25 +116,28 @@ export default function EpisodesList({
   return (
     <>
       <Heading className="mb-2 flex items-center gap-2 text-white">
-        Episodes <span>—</span>
+        Episodes
         {seasonsCount > 1 && (
-          <Select
-            value={seasonNumber.toString()}
-            onValueChange={(value) => setSeasonNumber(Number(value))}
-          >
-            <SelectTrigger className="w-32 overflow-hidden text-xs font-semibold uppercase tracking-widest -ms-1.5">
-              <SelectValue placeholder="Select season" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                {Array.from({ length: seasonsCount }, (_, i) => (
-                  <SelectItem key={i + 1} value={(i + 1).toString()}>
-                    Season {i + 1}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+          <>
+            <span>—</span>
+            <Select
+              value={seasonNumber.toString()}
+              onValueChange={(value) => setSeasonNumber(Number(value))}
+            >
+              <SelectTrigger className="w-32 overflow-hidden text-xs font-semibold uppercase tracking-widest -ms-1.5">
+                <SelectValue placeholder="Select season" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {Array.from({ length: seasonsCount }, (_, i) => (
+                    <SelectItem key={i + 1} value={(i + 1).toString()}>
+                      Season {i + 1}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </>
         )}
       </Heading>
       {isLoading && (

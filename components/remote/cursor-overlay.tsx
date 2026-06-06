@@ -1,16 +1,18 @@
 "use client";
 
 import { cursorManager } from "@/lib/cursor-manager";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
 export function CursorOverlay() {
+  const router = useRouter();
   const cursorRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    cursorManager.attach(cursorRef.current!, wrapperRef.current!);
+    cursorManager.attach(cursorRef.current!, wrapperRef.current!, () => router.back());
     return () => cursorManager.detach();
-  }, []);
+  }, [router]);
 
   return (
     <div
