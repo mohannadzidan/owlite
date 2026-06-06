@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { readTextFile } from "@/lib/read-text-file";
 
 const LANGUAGES = [
   { code: "en", name: "English" },
@@ -83,7 +84,7 @@ export function SubtitleUploadDialog({
 
     const filePayloads: Array<{ filename: string; content: string }> = [];
     for (const file of Array.from(files)) {
-      const content = await file.text();
+      const content = await readTextFile(file);
       filePayloads.push({ filename: file.name, content });
     }
 
