@@ -1,6 +1,6 @@
 packages:
-  - "apps/*"
-  - "packages/*"
+  - apps/*
+  - packages/*
 
 allowBuilds:
   msw: false
@@ -8,4 +8,5 @@ allowBuilds:
   unrs-resolver: true
 
 onlyBuiltDependencies:
+  - '@swc/core'
   - better-sqlite3
