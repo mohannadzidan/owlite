@@ -376,6 +376,7 @@ interface SubtitlesControlProps extends Omit<ComponentProps<"button">, "onClick"
   tmdbId?: number;
   season?: number;
   episode?: number;
+  fileName?: string;
   onSelectTrack?: (track: SubtitleTrack) => void;
   onClearSelection?: () => void;
   onDelayChange?: (value: number) => void;
@@ -390,6 +391,7 @@ PlayerControls.Subtitles = function SubtitlesControl({
   tmdbId,
   season,
   episode,
+  fileName,
   onSelectTrack,
   onClearSelection,
   onDelayChange,
@@ -397,49 +399,33 @@ PlayerControls.Subtitles = function SubtitlesControl({
   onVerticalPosChange,
   ...props
 }: SubtitlesControlProps) {
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
   const activeExternalTrackId = usePlayerStore((s) => s.activeExternalTrackId);
 
-  useEffect(() => {
-    if (!open) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open]);
-
   return (
-    <div ref={containerRef} className="relative">
-      <button
-        type="button"
-        aria-label="Subtitles"
-        aria-expanded={open}
-        className={cn("flex items-center gap-2", className)}
-        style={{ opacity: activeExternalTrackId ? 1 : 0.7 }}
-        onClick={() => setOpen((v) => !v)}
-        {...props}
-      >
-        <Subtitles size={20} strokeWidth={1.5} />
-        {children}
-      </button>
-      {open && (
-        <SubtitlesPanel
-          imdbId={imdbId}
-          tmdbId={tmdbId}
-          season={season}
-          episode={episode}
-          onSelectTrack={onSelectTrack}
-          onClearSelection={onClearSelection}
-          onDelayChange={onDelayChange}
-          onFontSizeChange={onFontSizeChange}
-          onVerticalPosChange={onVerticalPosChange}
-        />
-      )}
-    </div>
+    <SubtitlesPanel
+      imdbId={imdbId}
+      tmdbId={tmdbId}
+      season={season}
+      episode={episode}
+      fileName={fileName}
+      onSelectTrack={onSelectTrack}
+      onClearSelection={onClearSelection}
+      onDelayChange={onDelayChange}
+      onFontSizeChange={onFontSizeChange}
+      onVerticalPosChange={onVerticalPosChange}
+      trigger={
+        <button
+          type="button"
+          aria-label="Subtitles"
+          className={cn("flex items-center gap-2", className)}
+          style={{ opacity: activeExternalTrackId ? 1 : 0.7 }}
+          {...props}
+        >
+          <Subtitles size={20} strokeWidth={1.5} />
+          {children}
+        </button>
+      }
+    />
   );
 };
 

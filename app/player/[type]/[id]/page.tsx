@@ -31,6 +31,7 @@ interface PlayerUIProps {
   nextSeason?: number;
   nextEpisode?: number;
   episodeTitle?: string;
+  fileName?: string;
   onNextEpisode?: () => void;
 }
 
@@ -183,6 +184,7 @@ export function PlayerUI({
   nextEpisode,
   onNextEpisode,
   episodeTitle,
+  fileName,
 }: PlayerUIProps) {
   useShortcutScope(shortcutsScopes.player);
   const router = useRouter();
@@ -311,6 +313,7 @@ export function PlayerUI({
               tmdbId={tmdbId}
               season={season}
               episode={episode}
+              fileName={fileName}
               onSelectTrack={handleSelectTrack}
               onClearSelection={handleClearTrack}
               onDelayChange={setSubtitleDelay}
@@ -541,6 +544,7 @@ export default function Page() {
         nextSeason={nextSeason}
         nextEpisode={nextEpisode}
         onNextEpisode={nextEpisodeHandler}
+        fileName={playResponse.data.type === "hls" ? playResponse.data.fileName : undefined}
       />
     </Player>
   );

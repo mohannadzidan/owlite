@@ -1,17 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Globe, HardDrive, Minus, Plus } from "lucide-react";
+import { Globe, HardDrive, Minus, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import useSWR from "swr";
 import type { SubtitleTrack } from "@/lib/types";
 import { profileService } from "@/services/profile.service";
 import { useProfilePreferences } from "@/hooks/use-profile-preferences";
 import { subtitles } from "@/services/api.service";
+import { cn } from "@/lib/utils";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { usePlayerStore } from "./player-store";
-
-function cn(...classes: (string | undefined | false | null)[]) {
-  return classes.filter(Boolean).join(" ");
-}
+import { Button } from "@/components/ui/button";
 
 function getLanguageName(code: string): string {
   try {
@@ -33,25 +32,27 @@ function Stepper({
   onIncrement: () => void;
 }) {
   return (
-    <div>
-      <p className="text-white/60 text-sm mb-3">{label}</p>
-      <div className="flex items-center gap-3">
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <p className="text-white/60 text-xs font-semibold uppercase tracking-widest w-20">
+          {label}
+        </p>
         <button
           type="button"
           onClick={onDecrement}
-          className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors text-white"
+          className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors text-white"
           aria-label={`Decrease ${label}`}
         >
-          <Minus size={16} />
+          <Minus size={14} />
         </button>
-        <span className="text-white text-base font-medium w-16 text-center">{value}</span>
+        <span className="text-white text-sm font-medium w-14 text-center flex-1">{value}</span>
         <button
           type="button"
           onClick={onIncrement}
-          className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors text-white"
+          className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors text-white"
           aria-label={`Increase ${label}`}
         >
-          <Plus size={16} />
+          <Plus size={14} />
         </button>
       </div>
     </div>
@@ -63,11 +64,13 @@ interface SubtitlesPanelProps {
   tmdbId?: number;
   season?: number;
   episode?: number;
+  fileName?: string;
   onSelectTrack?: (track: SubtitleTrack) => void;
   onClearSelection?: () => void;
   onDelayChange?: (value: number) => void;
   onFontSizeChange?: (value: number) => void;
   onVerticalPosChange?: (value: number) => void;
+  trigger: React.ReactNode;
 }
 
 export function SubtitlesPanel({
@@ -75,11 +78,13 @@ export function SubtitlesPanel({
   tmdbId,
   season,
   episode,
+  fileName,
   onSelectTrack,
   onClearSelection,
   onDelayChange,
   onFontSizeChange,
   onVerticalPosChange,
+  trigger,
 }: SubtitlesPanelProps) {
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -98,15 +103,12 @@ export function SubtitlesPanel({
   const tracks: SubtitleTrack[] =
     subtitlesData && !("error" in subtitlesData) ? (subtitlesData.tracks ?? []) : [];
 
-  // Auto-select preferred language once tracks load (runs only once per load)
   const autoSelectedRef = useRef(false);
 
   useEffect(() => {
     autoSelectedRef.current = false;
   }, [imdbId, tmdbId, season, episode]);
 
-  // Auto-select language when tracks become available:
-  // prefer the currently-active track's language, fall back to saved preference
   useEffect(() => {
     if (autoSelectedRef.current || tracks.length === 0) return;
     if (activeExternalTrackId) {
@@ -170,66 +172,91 @@ export function SubtitlesPanel({
     }
   };
 
-  const delayLabel = `${delay >= 0 ? "" : ""}${delay.toFixed(1)}s`;
+  const delayLabel = `${delay.toFixed(1)}s`;
+  const step = selectedLanguage ? "variants" : "languages";
 
   return (
-    <div className="absolute bottom-full mb-4 left-1/2 -translate-x-1/2 bg-black/90 backdrop-blur-sm rounded-xl border border-white/10 shadow-2xl flex overflow-hidden">
-      {/* Column 1: Languages */}
-      <div className="w-52 border-r border-white/10 flex-shrink-0">
-        <p className="text-white/50 text-xs font-semibold uppercase tracking-widest px-5 py-4 border-b border-white/10">
-          Subtitles Languages
-        </p>
-        <div className="overflow-y-auto max-h-64 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <button
-            type="button"
-            onClick={handleOff}
-            className={cn(
-              "w-full text-left px-5 py-3 text-sm transition-colors",
-              !activeExternalTrackId
-                ? "bg-white/15 text-white font-medium"
-                : "text-white/80 hover:bg-white/5",
-            )}
-          >
-            OFF
-          </button>
-          {loading ? (
-            <p className="px-5 py-3 text-white/40 text-sm">Searching…</p>
-          ) : languages.length === 0 ? (
-            <p className="px-5 py-3 text-white/30 text-sm">
-              {imdbId || tmdbId ? "No subtitles found" : "No ID provided"}
-            </p>
-          ) : (
-            languages.map((lang) => (
-              <button
-                key={lang}
-                type="button"
-                onClick={() => setSelectedLanguage(lang)}
-                className={cn(
-                  "w-full text-left px-5 py-3 text-sm transition-colors",
-                  selectedLanguage === lang
-                    ? "bg-white/15 text-white font-medium"
-                    : "text-white/80 hover:bg-white/5",
-                )}
-              >
-                {getLanguageName(lang)}
-              </button>
-            ))
-          )}
-        </div>
-      </div>
+    <Sheet>
+      <SheetTrigger asChild>{trigger}</SheetTrigger>
+      <SheetContent
+        side="right"
+        className="w-[26rem] sm:max-w-[26rem] bg-black/95 border-white/10 text-white flex flex-col gap-0 p-0"
+      >
+        {/* Header */}
+        <SheetHeader className="px-6 py-5 border-b border-white/10 shrink-0">
+          <SheetTitle className="text-white text-sm flex gap-2 items-center text-muted-foreground font-semibold">
+            {step === "variants" && (
+              <Button
+                onClick={() => setSelectedLanguage(null)}
+                aria-label="Back to languages"
 
-      {/* Column 2: Variants */}
-      <div className="w-52 border-r border-white/10 flex-shrink-0">
-        <p className="text-white/50 text-xs font-semibold uppercase tracking-widest px-5 py-4 border-b border-white/10">
-          Subtitles Variants
-        </p>
-        <div className="overflow-y-auto max-h-64 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {currentLanguageTracks.length === 0 ? (
-            <p className="px-5 py-3 text-white/30 text-sm">
-              {selectedLanguage ? "No variants" : "Select a language"}
+                variant="ghost"
+              >
+                <ChevronLeft size={16} />
+              </Button>
+            )}
+            {step === "languages" ? "Subtitles" : getLanguageName(selectedLanguage!)}
+          </SheetTitle>
+          {fileName && (
+            <p className="text-white/40 text-xs truncate mt-1" title={fileName}>
+              {fileName}
             </p>
-          ) : (
-            currentLanguageTracks.map((track) => {
+          )}
+        </SheetHeader>
+
+        {/* Step 1 — Language list */}
+        {step === "languages" && (
+          <div className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <button
+              type="button"
+              onClick={handleOff}
+              className={cn(
+                "w-full text-left px-6 py-4 text-sm transition-colors border-b border-white/5",
+                !activeExternalTrackId
+                  ? "bg-white/15 text-white font-medium"
+                  : "text-white/70 hover:bg-white/5",
+              )}
+            >
+              Off
+            </button>
+            {loading ? (
+              <p className="px-6 py-4 text-white/40 text-sm">Searching…</p>
+            ) : languages.length === 0 ? (
+              <p className="px-6 py-4 text-white/30 text-sm">
+                {imdbId || tmdbId ? "No subtitles found" : "No ID provided"}
+              </p>
+            ) : (
+              languages.map((lang) => {
+                const langTracks = byLanguage[lang] ?? [];
+                const isActive = langTracks.some((t) => t.id === activeExternalTrackId);
+                return (
+                  <button
+                    key={lang}
+                    type="button"
+                    onClick={() => setSelectedLanguage(lang)}
+                    className={cn(
+                      "w-full text-left px-6 py-4 text-sm transition-colors border-b border-white/5 flex items-center justify-between",
+                      "text-white/70 hover:bg-white/5",
+                    )}
+                  >
+                    <span className={cn(isActive && "text-white font-medium")}>
+                      {getLanguageName(lang)}
+                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-white/30 text-xs">{langTracks.length}</span>
+                      {isActive && <span className="w-2 h-2 rounded-full bg-green-400" />}
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        )}
+
+        {/* Step 2 — Variant list */}
+        {step === "variants" && (
+          <div className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {currentLanguageTracks.map((track) => {
               const isActive = activeExternalTrackId === track.id;
               const isDownloading = downloadingId === track.id;
               return (
@@ -239,21 +266,21 @@ export function SubtitlesPanel({
                   onClick={() => handleSelectTrack(track)}
                   disabled={!!downloadingId}
                   className={cn(
-                    "w-full text-left px-5 py-3 transition-colors",
+                    "w-full text-left px-6 py-4 transition-colors border-b border-white/5",
                     isActive ? "bg-white/15" : "hover:bg-white/5",
                     downloadingId && !isDownloading ? "opacity-50" : "",
                   )}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5 min-w-0">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
                       {track.provider === "local" ? (
-                        <HardDrive className="size-3 shrink-0 text-white/50" />
+                        <HardDrive className="size-4 shrink-0 text-white/50" />
                       ) : (
-                        <Globe className="size-3 shrink-0 text-white/50" />
+                        <Globe className="size-4 shrink-0 text-white/50" />
                       )}
                       <p className="text-sm text-white truncate">
                         {track.release_name
-                          ? track.release_name.slice(0, 28)
+                          ? track.release_name
                           : `OpenSubtitles ${track.format.toUpperCase()}`}
                       </p>
                     </div>
@@ -264,18 +291,16 @@ export function SubtitlesPanel({
                   </div>
                 </button>
               );
-            })
-          )}
-          {downloadError && <p className="px-5 py-2 text-red-400 text-xs">{downloadError}</p>}
-        </div>
-      </div>
+            })}
+            {downloadError && <p className="px-6 py-3 text-red-400 text-xs">{downloadError}</p>}
+          </div>
+        )}
 
-      {/* Column 3: Settings */}
-      <div className="w-52 flex-shrink-0">
-        <p className="text-white/50 text-xs font-semibold uppercase tracking-widest px-5 py-4 border-b border-white/10">
-          Subtitles Settings
-        </p>
-        <div className="px-5 py-5 flex flex-col gap-5">
+        {/* Settings — always visible at bottom */}
+        <div className="shrink-0 border-t border-white/10 px-6 py-5 flex flex-col gap-4 items-stretch">
+          <p className="text-white/50 text-xs font-semibold uppercase tracking-widest mb-4">
+            Settings
+          </p>
           <Stepper
             label="Delay"
             value={delayLabel}
@@ -289,13 +314,13 @@ export function SubtitlesPanel({
             onIncrement={() => onFontSizeChange?.(Math.min(200, fontSize + 5))}
           />
           <Stepper
-            label="Vertical Position"
+            label="Position"
             value={`${verticalPos}%`}
             onDecrement={() => onVerticalPosChange?.(Math.max(0, verticalPos - 5))}
             onIncrement={() => onVerticalPosChange?.(Math.min(50, verticalPos + 5))}
           />
         </div>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 }
