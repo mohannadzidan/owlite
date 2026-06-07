@@ -1,17 +1,21 @@
 import fastify from "fastify";
-import { PlayResponse } from "@owlite/types";
+import fastifyIO from "fastify-socket.io";
 const server = fastify();
 
-server.get("/ping", async (request, reply) => {
-  return "pong\n";
-});
+server.register(fastifyIO);
 
 server.listen({ port: 8080 }, (err, address) => {
+
+  server.io.on("connection", (socket) => {
+    console.log("a user connected");  
+    socket.on("disconnect", () => {
+      console.log("user disconnected");
+    });
+  });
+  
   if (err) {
     console.error(err);
     process.exit(1);
   }
-  console.log(`Server listening at ${address}`, {
-    master_manifest_url: "http://localhost:8080/master.m3u8",
-  } as PlayResponse);
+
 });
