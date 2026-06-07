@@ -191,7 +191,7 @@ function ControlsInner() {
         {/* Sub delay pill */}
         <div className="flex flex-col items-center bg-card rounded-[2rem] px-5 py-5 gap-3 w-[4.5rem]">
           <PillBtn icon={ChevronUp} onPress={() => send("player.subtitlesDelayIncrease")} />
-          <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <span className="text-[0.625rem] font-semibold uppercase tracking-widest text-muted-foreground">
             Sub
           </span>
           <PillBtn icon={ChevronDown} onPress={() => send("player.subtitlesDelayDecrease")} />

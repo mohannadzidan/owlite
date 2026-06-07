@@ -55,18 +55,18 @@ function EpisodeItem({ tmdbId, episode }: { tmdbId: number; episode: TmdbEpisode
           <div>
             <Image
               src={tmdbImageUrl("still", "w185", episode.still_path)}
-              className="rounded w-[140px] h-[78px] object-cover"
+              className="rounded w-36 h-20 first-letter:object-cover"
               alt={episode.name}
               sizes="185px"
-              width={140}
-              height={78}
+              width={144}
+              height={80}
             />
             {progress && progress.total > 0 && (
               <Progress value={(progress.watched / progress.total) * 100} />
             )}
           </div>
         </ItemMedia>
-        <ItemContent className="max-h-[60px]">
+        <ItemContent className="max-h-16">
           <ItemTitle className="flex w-full ">
             <span className="flex-1">{!episode.name.match(/^Episode \d+$/) && episode.name}</span>
             <Muted className="text-xs">{episode.runtime}m</Muted>
