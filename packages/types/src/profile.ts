@@ -1,3 +1,10 @@
+export type Profile = {
+  id: string;
+  name: string;
+  avatarSeed: string;
+  createdAt: number;
+};
+
 export type PreferencesRecord = {
   autoplay: boolean;
   showContinueWatching: boolean;
@@ -14,6 +21,11 @@ export const DEFAULT_PREFERENCES: PreferencesRecord = {
   subtitleLanguage: null,
   subtitleFontSize: 75,
   subtitleVerticalPosition: 5,
+};
+
+export type ProgressRecord = {
+  total: number;
+  watched: number;
 };
 
 export type ContinueWatchingEntry =
@@ -37,15 +49,3 @@ export type ContinueWatchingEntry =
       season: number;
       episode: number;
     };
-
-export type ProgressRecord = {
-  total: number;
-  watched: number;
-};
-
-export type Profile = {
-  id: string;
-  name: string;
-  avatarSeed: string;
-  createdAt: number;
-};

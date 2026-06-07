@@ -189,7 +189,6 @@ export function SubtitlesPanel({
               <Button
                 onClick={() => setSelectedLanguage(null)}
                 aria-label="Back to languages"
-
                 variant="ghost"
               >
                 <ChevronLeft size={16} />

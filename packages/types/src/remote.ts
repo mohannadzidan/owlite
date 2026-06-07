@@ -6,9 +6,7 @@ export type RemoteMessage =
   | { type: "cursor_tap" }
   | { type: "cursor_scroll"; dy: number }
   | { type: "remote_action"; shortcutId: string }
-  // TV → Remote: a text input gained/lost focus
   | { type: "text_input_focused"; currentValue: string }
   | { type: "text_input_blurred" }
-  // Remote → TV: text to insert / special key to dispatch
   | { type: "remote_text"; text: string }
   | { type: "remote_key"; key: string };
