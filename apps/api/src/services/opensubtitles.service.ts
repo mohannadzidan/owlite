@@ -1,5 +1,3 @@
-import { request as requestFn } from "./request";
-
 const BASE = "https://api.opensubtitles.com/api/v1";
 
 function authHeaders() {
@@ -11,9 +9,6 @@ function authHeaders() {
     "User-Agent": "owlite v0.0.1",
   };
 }
-
-const request = <T>(path: string, init?: RequestInit) =>
-  requestFn<T>(`${BASE}${path}`, { headers: authHeaders(), ...init });
 
 export class HttpError extends Error {
   constructor(public readonly status: number) {
@@ -45,14 +40,16 @@ export interface DownloadLinkResponse {
 }
 
 export const subtitles = {
-  search: (params: SearchParams) => {
+  search: async (params: SearchParams): Promise<{ data: SubtitleItem[] } | { error: string }> => {
     const qs = new URLSearchParams();
     if (params.imdb_id) qs.set("imdb_id", params.imdb_id.replace("tt", ""));
     if (params.tmdb_id != null) qs.set("tmdb_id", String(params.tmdb_id));
     if (params.season != null) qs.set("season_number", String(params.season));
     if (params.episode != null) qs.set("episode_number", String(params.episode));
     if (params.language) qs.set("languages", params.language);
-    return request<{ data: SubtitleItem[] }>(`/subtitles?${qs}`);
+    const res = await fetch(`${BASE}/subtitles?${qs}`, { headers: authHeaders() });
+    if (!res.ok) throw new HttpError(res.status);
+    return res.json() as Promise<{ data: SubtitleItem[] }>;
   },
 };
 

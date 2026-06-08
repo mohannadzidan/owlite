@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { SubtitleUploadDialog } from "@/components/subtitle-upload-dialog";
 import { cn } from "@/lib/utils";
-import type { SubtitleEntry, SubtitleFileRow } from "@/app/api/subtitles/list/route";
+import type { SubtitleEntry, SubtitleFileRow } from "@owlite/types";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, {

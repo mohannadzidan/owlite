@@ -4,6 +4,8 @@ import type {
   PreferencesRecord,
   ProgressRecord,
   ContinueWatchingEntry,
+  SubtitleTrack,
+  SubtitlesUploadRequest,
 } from "@owlite/types";
 
 const getApiBaseUrl = () =>
@@ -58,6 +60,33 @@ export const apiClient = {
       request<{ ok: boolean }>(url("/profile/continue-watching"), json("POST", entry)),
     remove: (tmdbId: number) =>
       request<{ ok: boolean }>(url(`/profile/continue-watching?tmdbId=${tmdbId}`), json("DELETE")),
+  },
+  subtitles: {
+    list: (params: { tmdb_id: number; season?: number; episode?: number }) => {
+      const q = new URLSearchParams({ tmdb_id: String(params.tmdb_id) });
+      if (params.season !== undefined) q.set("season", String(params.season));
+      if (params.episode !== undefined) q.set("episode", String(params.episode));
+      return request<{ entries: unknown[] }>(url(`/subtitles/list?${q}`));
+    },
+    search: (params: {
+      imdb_id?: string;
+      tmdb_id?: number;
+      season?: number;
+      episode?: number;
+      language?: string;
+    }) => request<{ tracks: SubtitleTrack[] }>(url("/subtitles/search"), json("POST", params)),
+    downloadUrl: (fileId: number) => url(`/subtitles/download?file_id=${fileId}`),
+    streamUrl: (cacheKey: string) =>
+      url(`/subtitles/stream?cache_key=${encodeURIComponent(cacheKey)}`),
+    upload: (data: SubtitlesUploadRequest) =>
+      fetch(url("/subtitles/upload"), { method: "POST", body: JSON.stringify(data) }).then(
+        (r) => r.json() as Promise<{ ids: number[] }>,
+      ),
+    setFavorite: (
+      payload: { id: number; isFavorite: boolean } | { batchId: string; isFavorite: boolean },
+    ) => request<{ ok: boolean }>(url("/subtitles/list"), json("PATCH", payload)),
+    delete: (payload: { id?: number; batchId?: string }) =>
+      request<{ deleted: number }>(url("/subtitles/list"), json("DELETE", payload)),
   },
   profileSubtitles: {
     get: (params: { tmdbId: number; season?: number; episode?: number }) =>

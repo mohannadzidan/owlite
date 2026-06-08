@@ -20,10 +20,12 @@ Package manager: pnpm with workspaces. Build orchestration: Turborepo.
 
 - Next.js 16, App Router, React 19, TypeScript, Tailwind CSS 3, shadcn/ui
 - Targets Chrome 81 (Android TV) — no modern browser APIs assumed
-- All 20 API routes currently live in `app/api/` as Next.js Route Handlers
+- Remaining Next.js API routes in `app/api/`: sources, play, stream, hls-proxy, hls-segment, mappings, client-errors, logs (phases 5 & 6)
 - DB access via `db/index.ts` (re-exports `db` from `@owlite/db`) and `db/schema.ts` (re-exports schema from `@owlite/db`)
 - Services in `services/` are plain functions (no framework imports); `request.ts` is the base HTTP util — signature: `request<T>(url, init?)` matching `fetch`
-- `services/api-client.ts` — typed API client; `profiles` namespace populated in Phase 2; a `json(method, body?)` helper builds `RequestInit` with JSON headers
+- `services/api-client.ts` — typed API client with namespaces: `profiles` (Phase 2), `preferences`, `progress`, `continueWatching`, `profileSubtitles` (Phase 3), `subtitles` (Phase 4); a `json(method, body?)` helper builds `RequestInit` with JSON headers
+- `services/opensubtitles.service.ts` — **deleted** in Phase 4 (moved to `apps/api/src/services/`)
+- `lib/srt-to-vtt.ts` and `lib/filename-parser.ts` — **remain in owlite** (the api package has its own copies in `src/lib/`)
 - State: TanStack Query for server state, Zustand for UI state
 - `next.config.ts` has a fallback rewrite: `/api/:path*` → `http://localhost:8080/:path*` (the Fastify bridge added in Phase 1)
 
@@ -40,6 +42,15 @@ Package manager: pnpm with workspaces. Build orchestration: Turborepo.
 - `src/routes/index.ts` — central `registerRoutes(fastify)` function; import and register all route plugins here
 - `src/routes/profiles.ts` — Phase 2: all 5 profile routes as an `fp(...)` plugin
 - `src/services/profile.service.ts` — Phase 2: pure DB functions for profiles (`listProfiles`, `getProfileById`, `createProfile`, `updateProfile`, `deleteProfile`)
+- `src/routes/profile-data.ts` — Phase 3: preferences, progress, continue-watching, profile-subtitles routes
+- `src/services/profile-data.service.ts` — Phase 3: pure DB functions for profile data
+- `src/routes/subtitles.ts` — Phase 4: all 7 subtitle routes as an `fp(...)` plugin (list GET/PATCH/DELETE, search POST, download GET, stream GET with Range, upload POST json)
+- `src/services/subtitle.service.ts` — Phase 4: DB + file I/O functions (`listSubtitles`, `setFavorite`, `deleteSubtitle`, `searchSubtitles`, `downloadSubtitle`, `resolveSubtitleCachePath`, `uploadSubtitle`)
+- `src/services/opensubtitles.service.ts` — Phase 4: OpenSubtitles API client (moved from owlite; uses native fetch, no owlite `request.ts` dependency); exports `subtitles.search`, `downloads.link`, `HttpError`
+- `src/lib/srt-to-vtt.ts` — Phase 4: SRT→VTT converter (moved from `apps/owlite/lib/`)
+- `src/lib/filename-parser.ts` — Phase 4: subtitle filename parser wrapping `@ctrl/video-filename-parser` (moved from `apps/owlite/lib/`)
+- `@fastify/multipart` is registered in `src/index.ts` before routes; route files import `"@fastify/multipart"` for type augmentation of `req.parts()`
+- `@ctrl/video-filename-parser` added to `apps/api/package.json` dependencies
 - Runs on port 8080
 
 ## packages/db (@owlite/db)
@@ -53,7 +64,8 @@ Both `apps/owlite` and `apps/api` will share this package, pointing at the same 
 ## packages/types (@owlite/types)
 
 - `src/api.ts` — NEW in Phase 1: `ApiErrorCode`, `ApiError` types
-- `src/media.ts`, `src/profile.ts`, `src/remote.ts`, `src/remote-socket.ts` — pre-existing
+- `src/media.ts` — pre-existing + Phase 4 additions: `SubtitleFileRow`, `SubtitleEntry` types (moved here from the deleted Next.js list route so the frontend component `components/subtitles-manager.tsx` can import them)
+- `src/profile.ts`, `src/remote.ts`, `src/remote-socket.ts` — pre-existing
 
 ---
 
@@ -81,8 +93,8 @@ DB_PATH=../owlite/data/owlite.db   # points at same SQLite file as owlite
 |-------|--------|-------|
 | 1 | **Done** | packages/db, Fastify plugins, api-client stub, Next.js rewrite bridge |
 | 2 | **Done** | `/profiles` + `/profiles/:id[/select]` (5 routes) |
-| 3 | Pending | `/profile/preferences`, `/progress`, `/continue-watching`, `/subtitles` (9 routes) |
-| 4 | Pending | `/subtitles/list|search|download|stream|upload` (7 routes, multipart + Range) |
+| 3 | **Done** | `/profile/preferences`, `/progress`, `/continue-watching`, `/subtitles` (9 routes) |
+| 4 | **Done** | `/subtitles/list|search|download|stream|upload` (7 routes) |
 | 5 | Pending | `/sources`, `/play`, `/stream`, `/hls-proxy`, `/hls-segment` (5 routes) |
 | 6 | Pending | `/mappings` CRUD + `/client-errors|logs` (6 routes) |
 | 7 | Pending | Delete Next.js routes, remove rewrites, wire apiClient, clean deps |
@@ -100,3 +112,7 @@ The rewrite bridge in `next.config.ts` means each phase can delete Next.js route
 - `@fastify/type-provider-zod` was intentionally omitted — the published v1 requires Fastify v5 + Zod v4, which conflicts with the current stack (Fastify v4, Zod v3); add it only after upgrading Fastify
 - `drizzle-orm` must be in `apps/api/package.json` dependencies (added in Phase 2, version `^0.45` to match `packages/db`)
 - DB `createdAt` columns use `{ mode: "timestamp" }` so Drizzle returns a `Date` — map to milliseconds (`.getTime()`) when converting to `Profile` type (which uses `createdAt: number`)
+- For `@fastify/multipart` route type augmentation: add `import "@fastify/multipart"` at the top of the route file so TypeScript sees `req.parts()` — the plugin must also be registered in `src/index.ts` before routes
+- Drizzle with `better-sqlite3` is synchronous — use `.all()`, `.get()`, `.run()` instead of `await` on queries in `apps/api` services
+- When deleting Next.js routes, also remove them from `.next/dev/types/validator.ts` (the auto-generated type validator). Next.js generates this file during `next dev` and it will contain stale references to deleted routes that break `pnpm typecheck` until the dev server regenerates it or you remove the blocks manually
+- Types shared between the Fastify service layer and the Next.js frontend should live in `packages/types` (e.g. `SubtitleFileRow`, `SubtitleEntry`). Do not import types from Next.js route files in frontend components

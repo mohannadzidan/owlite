@@ -6,3 +6,15 @@ export type ApiErrorCode =
   | "could_not_resolve";
 
 export type ApiError = { error: { code: ApiErrorCode; message: string } };
+
+export type SubtitlesUploadRequest = {
+  files: {
+    filename: string;
+    content: string;
+  }[];
+  tmdbId: number;
+  type: "movie" | "tv";
+  language: string;
+  title: string;
+  year?: number;
+};
