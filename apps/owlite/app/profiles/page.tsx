@@ -57,7 +57,11 @@ export default function ProfilesPage() {
 
   const handleSelect = async (id: string) => {
     if (managing) return;
-    await profileService.selectProfile(id);
+    await fetch("/api/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ profileId: id }),
+    });
     router.push("/");
   };
 

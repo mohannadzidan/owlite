@@ -5,6 +5,7 @@ import { Globe, HardDrive, Minus, Plus, ChevronLeft, ChevronRight } from "lucide
 import useSWR from "swr";
 import type { SubtitleTrack } from "@/lib/types";
 import { profileService } from "@/services/profile.service";
+import { getClientProfileId } from "@/lib/profile-id";
 import { useProfilePreferences } from "@/hooks/use-profile-preferences";
 import { subtitles } from "@/services/api.service";
 import { cn } from "@/lib/utils";
@@ -155,8 +156,9 @@ export function SubtitlesPanel({
       }
       onSelectTrack?.(track);
       void patchPreferences({ subtitleLanguage: track.language });
-      if (tmdbId) {
-        void profileService.saveSubtitles(tmdbId, track.id, season, episode);
+      const profileId = getClientProfileId();
+      if (tmdbId && profileId) {
+        void profileService.saveSubtitles(profileId, tmdbId, track.id, season, episode);
       }
     } catch {
       setDownloadError("An error occurred while downloading subtitles.");
@@ -167,8 +169,9 @@ export function SubtitlesPanel({
   const handleOff = () => {
     onClearSelection?.();
     setDownloadError(null);
-    if (tmdbId) {
-      void profileService.saveSubtitles(tmdbId, "", season, episode);
+    const profileId = getClientProfileId();
+    if (tmdbId && profileId) {
+      void profileService.saveSubtitles(profileId, tmdbId, "", season, episode);
     }
   };
 

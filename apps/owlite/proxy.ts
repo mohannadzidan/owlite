@@ -40,6 +40,17 @@ export function proxy(request: NextRequest) {
     });
   }
 
+  if (pathname.startsWith("/api/hls-proxy")) {
+    const requestHeaders = new Headers(request.headers);
+    const externalApiUrl =
+        process.env.NEXT_PUBLIC_API_URL +
+      pathname.slice("/api/hls-proxy".length) +
+      request.nextUrl.search;
+    return NextResponse.rewrite(externalApiUrl, {
+      request: { headers: requestHeaders },
+    });
+  }
+
   return NextResponse.next();
 }
 

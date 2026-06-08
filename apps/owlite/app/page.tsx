@@ -1,57 +1,42 @@
-import { db } from "@/db";
-import { profileContinueWatching, profilePreferences } from "@/db/schema";
 import { DEFAULT_PREFERENCES, PreferencesRecord } from "@/lib/profile-types";
-import { desc, eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { SWRConfig } from "swr";
 import HomeClient from "./home-client";
+import { apiClient } from "@/services/api-client";
+import { InferSuccessResponse } from "@/services/request";
 
 export default async function HomePage() {
   const cookieStore = await cookies();
   const profileId = cookieStore.get("owlite_profile")?.value;
 
-  let continueWatching: ReturnType<typeof normalizeEntry>[] = [];
+  let continueWatching: InferSuccessResponse<typeof apiClient.continueWatching.list> = [];
   let preferences: PreferencesRecord = DEFAULT_PREFERENCES;
-
   if (profileId) {
     const [cwRows, prefRow] = await Promise.all([
-      db
-        .select()
-        .from(profileContinueWatching)
-        .where(eq(profileContinueWatching.profileId, profileId))
-        .orderBy(desc(profileContinueWatching.lastWatch)),
-      db.select().from(profilePreferences).where(eq(profilePreferences.profileId, profileId)).get(),
+      apiClient.continueWatching.list(profileId!),
+      apiClient.preferences.get(profileId!),
     ]);
-
-    continueWatching = cwRows.map(normalizeEntry);
-    preferences = prefRow ? (JSON.parse(prefRow.data) as PreferencesRecord) : DEFAULT_PREFERENCES;
+    if ("error" in cwRows || "error" in prefRow) {
+      console.error("Error fetching profile data", {
+        cwError: "error" in cwRows ? cwRows.error : null,
+        prefError: "error" in prefRow ? prefRow.error : null,
+      });
+      return <div className="p-4">Error loading profile data</div>;
+    }
+    continueWatching = cwRows;
+    preferences = prefRow ? (prefRow as PreferencesRecord) : DEFAULT_PREFERENCES;
   }
 
   return (
     <SWRConfig
       value={{
         fallback: {
-          "profile/continue-watching": continueWatching,
-          "profile/preferences": preferences,
+          [`profile/${profileId}/continue-watching`]: continueWatching,
+          [`profile/${profileId}/preferences`]: preferences,
         },
       }}
     >
       <HomeClient />
     </SWRConfig>
   );
-}
-
-function normalizeEntry(row: typeof profileContinueWatching.$inferSelect) {
-  const base = {
-    id: row.tmdbId,
-    lastWatch: row.lastWatch,
-    name: row.name,
-    overview: row.overview,
-    backdrop_path: row.backdropPath,
-    poster_path: row.posterPath ?? undefined,
-  };
-  if (row.type === "tv") {
-    return { ...base, type: "tv" as const, season: row.season!, episode: row.episode! };
-  }
-  return { ...base, type: "movie" as const, poster_path: row.posterPath ?? null };
 }

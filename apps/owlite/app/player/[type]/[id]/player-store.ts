@@ -4,6 +4,7 @@ import type { StoreApi } from "zustand";
 import type Hls from "hls.js";
 import { DEFAULT_PREFERENCES } from "@/lib/profile-types";
 import { profileService } from "@/services/profile.service";
+import { getClientProfileId } from "@/lib/profile-id";
 
 // ─── State shape ──────────────────────────────────────────────────────────────
 
@@ -117,11 +118,13 @@ export function createPlayerStore() {
     setActiveExternalTrackId: (activeExternalTrackId) => set({ activeExternalTrackId }),
     setSubtitleDelay: (subtitleDelay) => set({ subtitleDelay }),
     setSubtitleFontSize: (subtitleFontSize) => {
-      void profileService.patchPreferences({ subtitleFontSize });
+      const profileId = getClientProfileId();
+      if (profileId) void profileService.patchPreferences(profileId, { subtitleFontSize });
       set({ subtitleFontSize });
     },
     setSubtitleVerticalPosition: (subtitleVerticalPosition) => {
-      void profileService.patchPreferences({ subtitleVerticalPosition });
+      const profileId = getClientProfileId();
+      if (profileId) void profileService.patchPreferences(profileId, { subtitleVerticalPosition });
       set({ subtitleVerticalPosition });
     },
 
@@ -161,7 +164,8 @@ export function createPlayerStore() {
       if (hlsInstance && hlsInstance.levels.length - 1 > level) {
         hlsInstance.currentLevel = hlsInstance.levels.length - 1;
       } else if (hlsInstance) hlsInstance.currentLevel = level;
-      void profileService.patchPreferences({ qualityLevel: level });
+      const profileId = getClientProfileId();
+      if (profileId) void profileService.patchPreferences(profileId, { qualityLevel: level });
       set({ activeQualityLevel: level });
     },
   }));

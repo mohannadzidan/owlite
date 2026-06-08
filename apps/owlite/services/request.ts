@@ -48,6 +48,14 @@ export type InferErrorResponse<R> =
     : // eslint-disable-next-line @typescript-eslint/no-explicit-any
       Extract<Awaited<R>, ErrorResponse<any>>;
 
+export type InferSuccessResponse<R> =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  R extends (...args: any[]) => infer U
+    ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      Exclude<Awaited<U>, ErrorResponse<any>>
+    : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      Exclude<Awaited<R>, ErrorResponse<any>>;
+
 export function isErrorResponse<C extends string>(data: unknown): data is ErrorResponse<C> {
   return (
     typeof data === "object" &&

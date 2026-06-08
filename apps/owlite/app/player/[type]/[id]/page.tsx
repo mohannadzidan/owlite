@@ -15,6 +15,7 @@ import { SubtitleTrack } from "@/lib/types";
 import { shortcutsScopes, useShortcut, useShortcutScope } from "@/lib/shortcuts";
 import { PlayerControls } from "@/app/player/[type]/[id]/player-controls";
 import { profileService } from "@/services/profile.service";
+import { getClientProfileId } from "@/lib/profile-id";
 import { subtitles as subtitlesService } from "@/services/api.service";
 import { ArrowLeft } from "lucide-react";
 import FullScreenButton from "@/components/fullscreen-button";
@@ -44,6 +45,7 @@ function ProgressSaver({
   season?: number;
   episode?: number;
 }) {
+  const profileId = getClientProfileId();
   const playbackState = usePlayerStore((s) => s.playbackState);
   const seek = usePlayerStore((s) => s.seek);
   const duration = usePlayerStore((s) => s.duration);
@@ -54,41 +56,53 @@ function ProgressSaver({
 
   // Restore saved subtitle track ID immediately on mount
   useEffect(() => {
-    profileService.getSubtitles(tmdbId, season, episode).then((trackId) => {
+    if (!profileId) return;
+    profileService.getSubtitles(profileId, tmdbId, season, episode).then((trackId) => {
       if (trackId) setActiveExternalTrackId(trackId);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tmdbId, season, episode]);
+  }, [profileId, tmdbId, season, episode]);
 
   useEffect(() => {
     return playerApi.subscribe((state) => (currentTimeRef.current = state.currentTime));
   }, [playerApi]);
 
   useEffect(() => {
-    void profileService.patchProgress(tmdbId, { total: duration }, season, episode);
-  }, [duration, episode, season, tmdbId]);
+    if (!profileId) return;
+    void profileService.patchProgress(profileId, tmdbId, { total: duration }, season, episode);
+  }, [profileId, duration, episode, season, tmdbId]);
 
   // Restore saved position once playback is ready
   useEffect(() => {
     if (restoredRef.current) return;
     if (playbackState !== "playing" && playbackState !== "paused") return;
     restoredRef.current = true;
-    profileService.getProgress(tmdbId, season, episode).then((saved) => {
+    if (!profileId) return;
+    profileService.getProgress(profileId, tmdbId, season, episode).then((saved) => {
       if (saved && saved.watched > 5) seek(saved.watched);
     });
-  }, [playbackState, tmdbId, season, episode, seek]);
+  }, [profileId, playbackState, tmdbId, season, episode, seek]);
 
   // Save on pause / ended
   useEffect(() => {
     if (playbackState !== "paused" && playbackState !== "ended") return;
-    void profileService.patchProgress(tmdbId, { watched: currentTimeRef.current }, season, episode);
-  }, [playbackState, tmdbId, season, episode]);
+    if (!profileId) return;
+    void profileService.patchProgress(
+      profileId,
+      tmdbId,
+      { watched: currentTimeRef.current },
+      season,
+      episode,
+    );
+  }, [profileId, playbackState, tmdbId, season, episode]);
 
   // Save every 5 s while playing
   useEffect(() => {
     if (playbackState !== "playing") return;
+    if (!profileId) return;
     const id = setInterval(() => {
       void profileService.patchProgress(
+        profileId,
         tmdbId,
         { watched: currentTimeRef.current },
         season,
@@ -96,7 +110,7 @@ function ProgressSaver({
       );
     }, 5_000);
     return () => clearInterval(id);
-  }, [playbackState, tmdbId, season, episode]);
+  }, [profileId, playbackState, tmdbId, season, episode]);
 
   return null;
 }
@@ -112,6 +126,7 @@ function FavoriteSubtitleApplier({
   season?: number;
   episode?: number;
 }) {
+  const profileId = getClientProfileId();
   const activeExternalTrackId = usePlayerStore((s) => s.activeExternalTrackId);
   const setExternalSubtitleUrl = usePlayerStore((s) => s.setExternalSubtitleUrl);
   const setActiveExternalTrackId = usePlayerStore((s) => s.setActiveExternalTrackId);
@@ -146,7 +161,8 @@ function FavoriteSubtitleApplier({
     }
 
     appliedRef.current = true;
-    void profileService.saveSubtitles(tmdbId, favTrack.id, season, episode);
+    if (profileId)
+      void profileService.saveSubtitles(profileId, tmdbId, favTrack.id, season, episode);
     setExternalSubtitleUrl(favTrack.download_url);
     setActiveExternalTrackId(favTrack.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -342,6 +358,7 @@ export function PlayerUI({
 }
 
 export default function Page() {
+  const profileId = getClientProfileId();
   const searchPrams = useSearchParams();
   const router = useRouter();
   const { type, id } = useParams<{ type: "tv" | "movie"; id: string }>();
@@ -397,8 +414,9 @@ export default function Page() {
   }, []);
 
   useEffect(() => {
+    if (!profileId) return;
     if (tvTitleResponse.data?.id && tvTitleResponse.data.id === Number(id)) {
-      void profileService.saveContinueWatching({
+      void profileService.saveContinueWatching(profileId, {
         id: Number(id),
         type: "tv",
         lastWatch: Date.now(),
@@ -410,7 +428,7 @@ export default function Page() {
         poster_path: tvTitleResponse.data.poster_path,
       });
     } else if (movieTitleResponse.data?.id && movieTitleResponse.data.id === Number(id)) {
-      void profileService.saveContinueWatching({
+      void profileService.saveContinueWatching(profileId, {
         id: Number(id),
         type: "movie",
         lastWatch: Date.now(),
@@ -421,7 +439,7 @@ export default function Page() {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, tvTitleResponse.data?.id, movieTitleResponse.data?.id]);
+  }, [profileId, id, tvTitleResponse.data?.id, movieTitleResponse.data?.id]);
 
   if (!sourceId)
     return <SelectSourceDialog type={type} season={season} episode={episode} id={id} />;
@@ -458,10 +476,13 @@ export default function Page() {
     );
   }
 
-  const streamUrl =
+  const streamUrl = new URL(
     playResponse.data!.type === "hls"
       ? playResponse.data!.master_manifest_url
-      : playResponse.data!.url;
+      : playResponse.data!.url,
+    process.env.NEXT_PUBLIC_API_URL,
+  ).toString();
+  console.log(streamUrl, "streamUrl");
   const title = type === "movie" ? movieTitleResponse.data!.title : tvTitleResponse.data!.name;
   const tmdbId = type === "movie" ? movieTitleResponse.data!.id : tvTitleResponse.data!.id;
   const imdbId =

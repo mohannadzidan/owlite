@@ -28,10 +28,10 @@ function isHlsSrc(src: string): boolean {
     if (url.pathname.endsWith(".m3u8")) return true;
     if (url.searchParams.get("type") === "hls") return true;
     // Proxy URLs don't carry a .m3u8 extension but are always HLS manifests
-    if (url.pathname === "/api/hls-proxy") return true;
+    if (url.pathname === "/hls-proxy") return true;
   } catch {
     if (src.includes(".m3u8")) return true;
-    if (src.includes("/api/hls-proxy")) return true;
+    if (src.includes("/hls-proxy")) return true;
   }
   return false;
 }

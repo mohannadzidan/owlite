@@ -38,31 +38,39 @@ export const apiClient = {
     update: (id: string, patch: { name?: string; avatarSeed?: string }) =>
       request<{ ok: boolean }>(url(`/profiles/${id}`), json("PATCH", patch)),
     delete: (id: string) => request<{ ok: boolean }>(url(`/profiles/${id}`), { method: "DELETE" }),
-    select: (id: string) => request<Profile>(url(`/profiles/${id}/select`), json("POST")),
   },
   preferences: {
-    get: () => request<PreferencesRecord>(url("/profile/preferences")),
-    patch: (patch: Partial<PreferencesRecord>) =>
-      request<{ ok: boolean }>(url("/profile/preferences"), json("PATCH", patch)),
+    get: (profileId: string) =>
+      request<PreferencesRecord>(url(`/profiles/${profileId}/preferences`)),
+    patch: (profileId: string, patch: Partial<PreferencesRecord>) =>
+      request<{ ok: boolean }>(url(`/profiles/${profileId}/preferences`), json("PATCH", patch)),
   },
   progress: {
-    get: (params: { tmdbId: number; season?: number; episode?: number }) =>
-      request<ProgressRecord | null>(url(`/profile/progress?${mediaParams(params)}`)),
+    get: (profileId: string, params: { tmdbId: number; season?: number; episode?: number }) =>
+      request<ProgressRecord | null>(url(`/profiles/${profileId}/progress?${mediaParams(params)}`)),
     patch: (
+      profileId: string,
       params: { tmdbId: number; season?: number; episode?: number },
       data: Partial<ProgressRecord>,
     ) =>
       request<{ ok: boolean }>(
-        url(`/profile/progress?${mediaParams(params)}`),
+        url(`/profiles/${profileId}/progress?${mediaParams(params)}`),
         json("PATCH", data),
       ),
   },
   continueWatching: {
-    list: () => request<ContinueWatchingEntry[]>(url("/profile/continue-watching")),
-    add: (entry: ContinueWatchingEntry) =>
-      request<{ ok: boolean }>(url("/profile/continue-watching"), json("POST", entry)),
-    remove: (tmdbId: number) =>
-      request<{ ok: boolean }>(url(`/profile/continue-watching?tmdbId=${tmdbId}`), json("DELETE")),
+    list: (profileId: string) =>
+      request<ContinueWatchingEntry[]>(url(`/profiles/${profileId}/continue-watching`)),
+    add: (profileId: string, entry: ContinueWatchingEntry) =>
+      request<{ ok: boolean }>(
+        url(`/profiles/${profileId}/continue-watching`),
+        json("POST", entry),
+      ),
+    remove: (profileId: string, tmdbId: number) =>
+      request<{ ok: boolean }>(
+        url(`/profiles/${profileId}/continue-watching?tmdbId=${tmdbId}`),
+        json("DELETE"),
+      ),
   },
   subtitles: {
     list: (params: { tmdb_id: number; season?: number; episode?: number }) => {
@@ -92,10 +100,14 @@ export const apiClient = {
       request<{ deleted: number }>(url("/subtitles/list"), json("DELETE", payload)),
   },
   profileSubtitles: {
-    get: (params: { tmdbId: number; season?: number; episode?: number }) =>
-      request<{ subtitleUrl: string | null }>(url(`/profile/subtitles?${mediaParams(params)}`)),
-    patch: (data: { tmdbId: number; season?: number; episode?: number; subtitleUrl: string }) =>
-      request<{ ok: boolean }>(url("/profile/subtitles"), json("PATCH", data)),
+    get: (profileId: string, params: { tmdbId: number; season?: number; episode?: number }) =>
+      request<{ subtitleUrl: string | null }>(
+        url(`/profiles/${profileId}/subtitles?${mediaParams(params)}`),
+      ),
+    patch: (
+      profileId: string,
+      data: { tmdbId: number; season?: number; episode?: number; subtitleUrl: string },
+    ) => request<{ ok: boolean }>(url(`/profiles/${profileId}/subtitles`), json("PATCH", data)),
   },
   media: {
     sources: () => request<{ id: string; name: string; description?: string }[]>(url("/sources")),
