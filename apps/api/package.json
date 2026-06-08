@@ -17,6 +17,7 @@
     "@owlite/db": "workspace:*",
     "@owlite/types": "workspace:*",
     "fastify": "^4.28.1",
+    "drizzle-orm": "^0.45",
     "fastify-plugin": "^4.5.1",
     "fastify-socket.io": "^5.1.0",
     "socket.io": "^4.8.3",

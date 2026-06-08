@@ -1,0 +1,102 @@
+# Project Context & Migration State
+
+## Monorepo Layout
+
+```
+owlite/
+  apps/
+    owlite/          # Next.js 16 (App Router) frontend — personal media server for Android TV
+    api/             # Fastify backend — Socket.io remote-control server (being extended to host all API routes)
+  packages/
+    types/           # @owlite/types — shared TypeScript types (media, profile, remote, remote-socket, api)
+    db/              # @owlite/db — NEW in Phase 1; shared Drizzle/SQLite schema and db instance
+```
+
+Package manager: pnpm with workspaces. Build orchestration: Turborepo.
+
+---
+
+## apps/owlite
+
+- Next.js 16, App Router, React 19, TypeScript, Tailwind CSS 3, shadcn/ui
+- Targets Chrome 81 (Android TV) — no modern browser APIs assumed
+- All 20 API routes currently live in `app/api/` as Next.js Route Handlers
+- DB access via `db/index.ts` (re-exports `db` from `@owlite/db`) and `db/schema.ts` (re-exports schema from `@owlite/db`)
+- Services in `services/` are plain functions (no framework imports); `request.ts` is the base HTTP util — signature: `request<T>(url, init?)` matching `fetch`
+- `services/api-client.ts` — typed API client; `profiles` namespace populated in Phase 2; a `json(method, body?)` helper builds `RequestInit` with JSON headers
+- State: TanStack Query for server state, Zustand for UI state
+- `next.config.ts` has a fallback rewrite: `/api/:path*` → `http://localhost:8080/:path*` (the Fastify bridge added in Phase 1)
+
+## apps/api
+
+- Fastify 4, Socket.io, TypeScript, compiled with SWC
+- `src/index.ts` — bootstrap: registers plugins, then calls `registerRoutes(server)`, then `server.listen`
+- `src/plugins/` — four plugins added in Phase 1:
+  - `socket-io.ts` — all Socket.io pairing/session logic (extracted from old monolithic index.ts)
+  - `cors.ts` — `@fastify/cors` origin: '*'
+  - `cookies.ts` — `@fastify/cookie`
+  - `error-handler.ts` — Zod-like error → 400, HTTP errors → status code, fallback → 500; shape: `{ error: { code, message } }`
+- `src/utils.ts` — `generateCode()` helper used by socket-io plugin
+- `src/routes/index.ts` — central `registerRoutes(fastify)` function; import and register all route plugins here
+- `src/routes/profiles.ts` — Phase 2: all 5 profile routes as an `fp(...)` plugin
+- `src/services/profile.service.ts` — Phase 2: pure DB functions for profiles (`listProfiles`, `getProfileById`, `createProfile`, `updateProfile`, `deleteProfile`)
+- Runs on port 8080
+
+## packages/db (@owlite/db)
+
+Created in Phase 1. Contains:
+- `src/schema.ts` — all Drizzle table definitions: `subtitles`, `profiles`, `profilePreferences`, `profileProgress`, `profileContinueWatching`, `profileSubtitles`
+- `src/index.ts` — creates a `better-sqlite3` connection (path from `DB_PATH` env var, default `./data/owlite.db`), enables WAL mode, exports `db` and all schema symbols
+
+Both `apps/owlite` and `apps/api` will share this package, pointing at the same SQLite file via env vars.
+
+## packages/types (@owlite/types)
+
+- `src/api.ts` — NEW in Phase 1: `ApiErrorCode`, `ApiError` types
+- `src/media.ts`, `src/profile.ts`, `src/remote.ts`, `src/remote-socket.ts` — pre-existing
+
+---
+
+## Environment Variables
+
+### apps/owlite/.env.development
+```
+TMDB_API_KEY=...
+OPENSUBTITLES_API_KEY=...
+NEXT_PUBLIC_API_URL=http://192.168.1.100:8080   # browser-side Fastify URL
+API_INTERNAL_URL=http://localhost:8080           # SSR-side Fastify URL (added Phase 1)
+DB_PATH=./data/owlite.db                        # added Phase 1
+```
+
+### apps/api/.env.development (created Phase 1)
+```
+DB_PATH=../owlite/data/owlite.db   # points at same SQLite file as owlite
+```
+
+---
+
+## Migration Plan State
+
+| Phase | Status | Scope |
+|-------|--------|-------|
+| 1 | **Done** | packages/db, Fastify plugins, api-client stub, Next.js rewrite bridge |
+| 2 | **Done** | `/profiles` + `/profiles/:id[/select]` (5 routes) |
+| 3 | Pending | `/profile/preferences`, `/progress`, `/continue-watching`, `/subtitles` (9 routes) |
+| 4 | Pending | `/subtitles/list|search|download|stream|upload` (7 routes, multipart + Range) |
+| 5 | Pending | `/sources`, `/play`, `/stream`, `/hls-proxy`, `/hls-segment` (5 routes) |
+| 6 | Pending | `/mappings` CRUD + `/client-errors|logs` (6 routes) |
+| 7 | Pending | Delete Next.js routes, remove rewrites, wire apiClient, clean deps |
+
+The rewrite bridge in `next.config.ts` means each phase can delete Next.js routes one-by-one and Fastify picks them up automatically — no big-bang cutover.
+
+## Key Conventions to Follow
+
+- Route handlers: one `fp(...)` Fastify plugin per domain in `apps/api/src/routes/`
+- Business logic: plain service functions in `apps/api/src/services/` — no Fastify imports
+- Zod schemas inline in route files; use `schema.parse(req.body)` (not inline schema declaration) because `@fastify/type-provider-zod` is not used
+- `requireProfile` hook for routes that need an active profile (to be created in Phase 3)
+- Frontend: add namespace methods to `apiClient` in `apps/owlite/services/api-client.ts` as each phase lands
+- `api-client.ts` uses a `json(method, body?)` helper to build `RequestInit`; `request()` takes `(url, init?)` matching the `fetch` signature
+- `@fastify/type-provider-zod` was intentionally omitted — the published v1 requires Fastify v5 + Zod v4, which conflicts with the current stack (Fastify v4, Zod v3); add it only after upgrading Fastify
+- `drizzle-orm` must be in `apps/api/package.json` dependencies (added in Phase 2, version `^0.45` to match `packages/db`)
+- DB `createdAt` columns use `{ mode: "timestamp" }` so Drizzle returns a `Date` — map to milliseconds (`.getTime()`) when converting to `Profile` type (which uses `createdAt: number`)
