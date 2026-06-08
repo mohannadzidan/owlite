@@ -46,6 +46,14 @@ export type SubtitleEntry =
       createdAt: string;
     };
 
+export type LocalMapping = {
+  tmdb_id: number;
+  media_type: "movie" | "tv";
+  title: string;
+  local_path: string;
+  episode_pattern?: string;
+};
+
 export type SubtitleTrack = {
   id: string;
   language: string;

@@ -8,6 +8,7 @@ import type {
   SubtitlesUploadRequest,
   PlayResponse,
   ResolveParams,
+  LocalMapping,
 } from "@owlite/types";
 
 const getApiBaseUrl = () =>
@@ -103,6 +104,19 @@ export const apiClient = {
     streamUrl: (filePath: string) => url(`/stream?path=${encodeURIComponent(filePath)}`),
     hlsProxyUrl: (p: string) => url(`/hls-proxy?p=${p}`),
     hlsSegmentUrl: (p: string) => url(`/hls-segment?p=${p}`),
+  },
+  mappings: {
+    list: () => request<LocalMapping[]>(url("/mappings")),
+    create: (mapping: LocalMapping) =>
+      request<LocalMapping>(url("/mappings"), json("POST", mapping)),
+    update: (tmdbId: number, patch: Partial<LocalMapping>) =>
+      request<{ ok: boolean }>(url("/mappings"), json("PUT", { tmdb_id: tmdbId, ...patch })),
+    remove: (tmdbId: number) =>
+      request<{ ok: boolean }>(url("/mappings"), json("DELETE", { tmdb_id: tmdbId })),
+  },
+  observability: {
+    reportError: (payload: unknown) => request(url("/client-errors"), json("POST", payload)),
+    reportLog: (payload: unknown) => request(url("/client-logs"), json("POST", payload)),
   },
 };
 
