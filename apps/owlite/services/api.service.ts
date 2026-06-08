@@ -13,12 +13,7 @@ export { request };
 
 export const sources = {
   list: (tmdbId: number, mediaType: "movie" | "tv") =>
-    request<
-      {
-        sources: Omit<VideoSource, "resolve" | "has">[];
-        tmdb_id: number;
-        media_type: string;
-      },
+    request<Omit<VideoSource, "resolve" | "has">[],
       "could_not_resolve" | "bad_request" | "not_found"
     >(`/api/sources?tmdb_id=${tmdbId}&media_type=${mediaType}`),
 

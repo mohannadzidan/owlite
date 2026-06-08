@@ -68,7 +68,7 @@ export default function SelectSourceDialog({ type, season, episode, id }: Select
     <div className="flex items-center justify-center h-screen w-screen flex-col gap-4 container mx-auto max-w-xl p-4">
       <h1 className="font-semibold text-lg">Select a source</h1>
       <div className="w-full flex flex-col gap-2 max-h-[60vh] overflow-y-auto no-scrollbar">
-        {sourcesList?.sources.map((s) => (
+        {sourcesList?.map((s) => (
           <Item key={s.id} variant="outline" size="default" asChild>
             <Link
               key={s.id}
