@@ -1,3 +1,21 @@
+export interface ResolveParams {
+  screenSize: number;
+  userAgent: string;
+  media_type: "movie" | "tv";
+  season?: number;
+  episode?: number;
+  imdb_id: string;
+}
+
+export interface VideoSource {
+  id: string;
+  name: string;
+  priority: number;
+  description?: string;
+  resolve: (params: ResolveParams) => Promise<PlayResponse | null>;
+  has: (params: Omit<ResolveParams, "screenSize" | "userAgent">) => Promise<boolean>;
+}
+
 export type PlayResponse =
   | {
       type: "direct_video";

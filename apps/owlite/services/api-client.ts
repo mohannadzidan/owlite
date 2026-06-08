@@ -6,6 +6,8 @@ import type {
   ContinueWatchingEntry,
   SubtitleTrack,
   SubtitlesUploadRequest,
+  PlayResponse,
+  ResolveParams,
 } from "@owlite/types";
 
 const getApiBaseUrl = () =>
@@ -93,6 +95,14 @@ export const apiClient = {
       request<{ subtitleUrl: string | null }>(url(`/profile/subtitles?${mediaParams(params)}`)),
     patch: (data: { tmdbId: number; season?: number; episode?: number; subtitleUrl: string }) =>
       request<{ ok: boolean }>(url("/profile/subtitles"), json("PATCH", data)),
+  },
+  media: {
+    sources: () => request<{ id: string; name: string; description?: string }[]>(url("/sources")),
+    play: (params: { source_id: string } & Omit<ResolveParams, "userAgent">) =>
+      request<PlayResponse>(url("/play"), json("POST", params)),
+    streamUrl: (filePath: string) => url(`/stream?path=${encodeURIComponent(filePath)}`),
+    hlsProxyUrl: (p: string) => url(`/hls-proxy?p=${p}`),
+    hlsSegmentUrl: (p: string) => url(`/hls-segment?p=${p}`),
   },
 };
 

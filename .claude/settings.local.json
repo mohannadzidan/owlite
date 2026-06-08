@@ -4,7 +4,8 @@
       "Bash(pnpm typecheck *)",
       "Bash(pnpm lint *)",
       "Bash(pnpm fmt *)",
-      "Bash(pnpm --filter api typecheck)"
+      "Bash(pnpm --filter api typecheck)",
+      "Bash(npx tsc *)"
     ]
   }
 }
