@@ -5,19 +5,24 @@
   "keywords": [],
   "license": "ISC",
   "author": "",
-  "main": "index.js",
+  "main": "index",
   "scripts": {
     "dev": "cross-env NODE_ENV=development nodemon",
     "build": "cross-env NODE_ENV=production swc src -d dist --source-maps --copy-files"
   },
   "dependencies": {
+    "@fastify/cookie": "^9",
+    "@fastify/cors": "^9",
+    "@fastify/multipart": "^8",
+    "@owlite/db": "workspace:*",
+    "@owlite/types": "workspace:*",
     "fastify": "^4.28.1",
     "fastify-plugin": "^4.5.1",
     "fastify-socket.io": "^5.1.0",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "zod": "^3"
   },
   "devDependencies": {
-    "@owlite/types": "workspace:*",
     "@swc/cli": "^0.8.1",
     "@types/node": "^20.19.41",
     "cross-env": "^10.1.0",

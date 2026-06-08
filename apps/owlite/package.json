@@ -18,8 +18,8 @@
   "dependencies": {
     "@base-ui/react": "^1.5.0",
     "@ctrl/video-filename-parser": "^5.10.1",
+    "@owlite/db": "workspace:*",
     "@owlite/types": "workspace:*",
-    "better-sqlite3": "^12.10.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -54,7 +54,6 @@
   "devDependencies": {
     "@babel/core": "^7.29.7",
     "@babel/preset-env": "^7.29.7",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

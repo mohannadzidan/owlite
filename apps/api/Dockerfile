@@ -34,4 +34,4 @@ COPY --from=builder /app/apps/api/dist ./apps/api/dist
 
 EXPOSE 8080
 WORKDIR /app/apps/api
-CMD ["node", "dist/src/index.js"]
+CMD ["node", "dist/src/index"]
