@@ -156,7 +156,7 @@ export default fp(async (fastify) => {
           abs = t;
         }
         const enc = encode(abs, referer);
-        return abs.includes(".m3u8") ? `/api/hls-proxy?p=${enc}` : `/api/hls-segment?p=${enc}`;
+        return abs.includes(".m3u8") ? `/hls-proxy?p=${enc}` : `/hls-segment?p=${enc}`;
       })
       .join("\n");
 

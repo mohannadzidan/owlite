@@ -8,10 +8,20 @@ import {
 } from "@owlite/db";
 import { eq, asc, and, isNull, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import type { Profile, PreferencesRecord, ProgressRecord, ContinueWatchingEntry } from "@owlite/types";
+import type {
+  Profile,
+  PreferencesRecord,
+  ProgressRecord,
+  ContinueWatchingEntry,
+} from "@owlite/types";
 import { DEFAULT_PREFERENCES } from "@owlite/types";
 
-function toProfile(row: { id: string; name: string; avatarSeed: string; createdAt: Date }): Profile {
+function toProfile(row: {
+  id: string;
+  name: string;
+  avatarSeed: string;
+  createdAt: Date;
+}): Profile {
   return { ...row, createdAt: row.createdAt.getTime() };
 }
 
@@ -32,10 +42,7 @@ export function createProfile(name: string): Profile {
   return { id, name: name.trim(), avatarSeed, createdAt: createdAt.getTime() };
 }
 
-export function updateProfile(
-  id: string,
-  patch: { name?: string; avatarSeed?: string },
-): boolean {
+export function updateProfile(id: string, patch: { name?: string; avatarSeed?: string }): boolean {
   const result = db.update(profiles).set(patch).where(eq(profiles.id, id)).run();
   return result.changes > 0;
 }
@@ -161,6 +168,9 @@ export function getContinueWatching(profileId: string): ContinueWatchingEntry[] 
 }
 
 export function addContinueWatching(profileId: string, entry: ContinueWatchingEntry): void {
+  console.log(
+    `Saving continue watching for profile ${profileId}, tmdbId ${entry.id}, type ${entry.type}, season ${"season" in entry ? entry.season : "N/A"}, episode ${"episode" in entry ? entry.episode : "N/A"}, lastWatch ${new Date(entry.lastWatch).toISOString()}`,
+  );
   db.insert(profileContinueWatching)
     .values({
       profileId,
@@ -203,12 +213,7 @@ export function removeContinueWatching(profileId: string, tmdbId: number): void 
 
 // Profile Subtitles
 
-function buildSubtitlesWhere(
-  profileId: string,
-  tmdbId: number,
-  season?: number,
-  episode?: number,
-) {
+function buildSubtitlesWhere(profileId: string, tmdbId: number, season?: number, episode?: number) {
   return and(
     eq(profileSubtitles.profileId, profileId),
     eq(profileSubtitles.tmdbId, tmdbId),

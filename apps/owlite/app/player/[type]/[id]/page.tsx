@@ -17,6 +17,7 @@ import { PlayerControls } from "@/app/player/[type]/[id]/player-controls";
 import { profileService } from "@/services/profile.service";
 import { getClientProfileId } from "@/lib/profile-id";
 import { subtitles as subtitlesService } from "@/services/api.service";
+import { url as apiUrl } from "@/services/api-client";
 import { ArrowLeft } from "lucide-react";
 import FullScreenButton from "@/components/fullscreen-button";
 import { paths } from "@/lib/paths";
@@ -163,7 +164,7 @@ function FavoriteSubtitleApplier({
     appliedRef.current = true;
     if (profileId)
       void profileService.saveSubtitles(profileId, tmdbId, favTrack.id, season, episode);
-    setExternalSubtitleUrl(favTrack.download_url);
+    setExternalSubtitleUrl(apiUrl(favTrack.download_url));
     setActiveExternalTrackId(favTrack.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tracks, activeExternalTrackId, tracks.length]);
@@ -225,7 +226,7 @@ export function PlayerUI({
 
   const handleSelectTrack = useCallback(
     (track: SubtitleTrack) => {
-      setExternalSubtitleUrl(track.download_url);
+      setExternalSubtitleUrl(apiUrl(track.download_url));
       setActiveExternalTrackId(track.id);
     },
     [setActiveExternalTrackId, setExternalSubtitleUrl],

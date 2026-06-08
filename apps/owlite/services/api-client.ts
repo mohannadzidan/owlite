@@ -89,10 +89,18 @@ export const apiClient = {
     downloadUrl: (fileId: number) => url(`/subtitles/download?file_id=${fileId}`),
     streamUrl: (cacheKey: string) =>
       url(`/subtitles/stream?cache_key=${encodeURIComponent(cacheKey)}`),
-    upload: (data: SubtitlesUploadRequest) =>
-      fetch(url("/subtitles/upload"), { method: "POST", body: JSON.stringify(data) }).then(
-        (r) => r.json() as Promise<{ ids: number[] }>,
-      ),
+    upload: async (data: SubtitlesUploadRequest) => {
+      const res = await fetch(url("/subtitles/upload"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const body = await res.json();
+      if (res.status === 422)
+        return body as { errors: Array<{ filename: string; reason: string }> };
+      if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+      return body as { ids: number[] };
+    },
     setFavorite: (
       payload: { id: number; isFavorite: boolean } | { batchId: string; isFavorite: boolean },
     ) => request<{ ok: boolean }>(url("/subtitles/list"), json("PATCH", payload)),

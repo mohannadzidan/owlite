@@ -213,7 +213,7 @@ export async function searchSubtitles(params: SubtitleSearchParams): Promise<{
         id: `local-${row.id}`,
         language: row.language,
         format: "vtt",
-        download_url: `/api/subtitles/stream?cache_key=${encodeURIComponent(basename)}`,
+        download_url: `/subtitles/stream?cache_key=${encodeURIComponent(basename)}`,
         release_name: path.basename(row.file, path.extname(row.file)),
         provider: "local",
         isFavorite: row.isFavorite,
@@ -236,7 +236,7 @@ export async function searchSubtitles(params: SubtitleSearchParams): Promise<{
             id: String(fileId),
             language: lang,
             format: item.attributes.format ?? "srt",
-            download_url: `/api/subtitles/download?file_id=${fileId}&${trackContextParams.toString()}`,
+            download_url: `/subtitles/download?file_id=${fileId}&${trackContextParams.toString()}`,
             release_name: item.attributes.release,
             provider: "open_subtitles",
           });

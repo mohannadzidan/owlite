@@ -1,6 +1,8 @@
-import { notFound } from "next/navigation";
+"use client";
+import { notFound, useParams, usePathname } from "next/navigation";
 import Image from "next/image";
 import { tmdb } from "@/services/tmdb.service";
+import useSWR from "swr";
 import dayjs from "dayjs";
 import { Badge } from "@/components/ui/badge";
 import Muted from "@/components/typography/muted";
@@ -11,12 +13,18 @@ import { SubtitlesNavButton } from "@/components/subtitles-nav-button";
 const BACKDROP = "https://image.tmdb.org/t/p/w1280";
 const POSTER = "https://image.tmdb.org/t/p/w500";
 
-export default async function MovieDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const numId = Number(id);
-  if (isNaN(numId)) notFound();
+function LoadingSkeleton() {
+  return <div className="fixed inset-0 bg-black" />;
+}
 
-  const details = await tmdb.movies.details(numId, ["credits"]);
+export default function MovieDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const { data: details, isLoading } = useSWR(!isNaN(Number(id)) ? ["tmdb/movie", id] : null, () =>
+    tmdb.movies.details(Number(id), ["credits"]),
+  );
+
+  if (isNaN(Number(id))) notFound();
+  if (isLoading) return <LoadingSkeleton />;
   if (!details || "error" in details) notFound();
 
   return (

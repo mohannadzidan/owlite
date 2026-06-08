@@ -1,6 +1,7 @@
 "use client";
 
 import { Profile } from "@/lib/profile-types";
+import { setClientProfileId } from "@/lib/profile-id";
 import { profileService } from "@/services/profile.service";
 import { Edit2, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { nanoid } from "nanoid";
@@ -55,13 +56,9 @@ export default function ProfilesPage() {
     if (showAdd) setTimeout(() => newNameRef.current?.focus(), 50);
   }, [showAdd]);
 
-  const handleSelect = async (id: string) => {
+  const handleSelect = (id: string) => {
     if (managing) return;
-    await fetch("/api/session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ profileId: id }),
-    });
+    setClientProfileId(id);
     router.push("/");
   };
 

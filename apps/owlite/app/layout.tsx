@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { CursorOverlay } from "@/components/remote/cursor-overlay";
 import { RemoteControlProvider } from "@/components/remote/remote-control-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { ProfileGuard } from "@/components/profile-guard";
 
 const fontSans = Lato({
   subsets: ["latin"],
@@ -44,9 +45,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         )}
       >
         <RemoteControlProvider>
-          <Toaster />
-          {children}
-          <CursorOverlay />
+          <ProfileGuard>
+            <Toaster />
+            {children}
+            <CursorOverlay />
+          </ProfileGuard>
         </RemoteControlProvider>
       </body>
     </html>

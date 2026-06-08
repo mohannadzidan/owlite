@@ -4,6 +4,7 @@ import subtitlesPlugin from "./subtitles";
 import mediaPlugin from "./media";
 import mappingsPlugin from "./mappings";
 import observabilityPlugin from "./observability";
+import tmdbPlugin from "./tmdb";
 
 export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(profilesPlugin);
@@ -11,4 +12,5 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(mediaPlugin);
   await fastify.register(mappingsPlugin);
   await fastify.register(observabilityPlugin);
+  await fastify.register(tmdbPlugin);
 }

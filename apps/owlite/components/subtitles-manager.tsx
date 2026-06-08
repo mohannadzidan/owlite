@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { SubtitleUploadDialog } from "@/components/subtitle-upload-dialog";
 import { cn } from "@/lib/utils";
+import { apiClient } from "@/services/api-client";
 import type { SubtitleEntry, SubtitleFileRow } from "@owlite/types";
 
 function formatDate(iso: string) {
@@ -119,12 +120,7 @@ function SingleRow({
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      const res = await fetch("/api/subtitles/list", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: entry.id }),
-      });
-      if (!res.ok) throw new Error();
+      await apiClient.subtitles.delete({ id: entry.id });
       onDeleted();
     } catch {
       toast.error("Failed to delete subtitle.");
@@ -138,12 +134,7 @@ function SingleRow({
     const next = !entry.isFavorite;
     onFavoriteToggled(entry.id, next);
     try {
-      const res = await fetch("/api/subtitles/list", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: entry.id, isFavorite: next }),
-      });
-      if (!res.ok) throw new Error();
+      await apiClient.subtitles.setFavorite({ id: entry.id, isFavorite: next });
     } catch {
       onFavoriteToggled(entry.id, !next);
       toast.error("Failed to update favorite.");
@@ -189,12 +180,7 @@ function FileRow({
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      const res = await fetch("/api/subtitles/list", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: file.id }),
-      });
-      if (!res.ok) throw new Error();
+      await apiClient.subtitles.delete({ id: file.id });
       onDeleted();
     } catch {
       toast.error("Failed to delete subtitle.");
@@ -208,12 +194,7 @@ function FileRow({
     const next = !file.isFavorite;
     onFavoriteToggled(file.id, next);
     try {
-      const res = await fetch("/api/subtitles/list", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: file.id, isFavorite: next }),
-      });
-      if (!res.ok) throw new Error();
+      await apiClient.subtitles.setFavorite({ id: file.id, isFavorite: next });
     } catch {
       onFavoriteToggled(file.id, !next);
       toast.error("Failed to update favorite.");
@@ -261,12 +242,7 @@ function BatchRow({
   const handleDeleteBatch = async () => {
     setDeleting(true);
     try {
-      const res = await fetch("/api/subtitles/list", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ batchId: entry.batchId }),
-      });
-      if (!res.ok) throw new Error();
+      await apiClient.subtitles.delete({ batchId: entry.batchId });
       onDeleted();
     } catch {
       toast.error("Failed to delete batch.");
@@ -280,12 +256,7 @@ function BatchRow({
     const next = !allFavorited;
     onBatchFavoriteToggled(entry.batchId, next);
     try {
-      const res = await fetch("/api/subtitles/list", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ batchId: entry.batchId, isFavorite: next }),
-      });
-      if (!res.ok) throw new Error();
+      await apiClient.subtitles.setFavorite({ batchId: entry.batchId, isFavorite: next });
     } catch {
       onBatchFavoriteToggled(entry.batchId, !next);
       toast.error("Failed to update favorite.");
@@ -339,8 +310,12 @@ interface SubtitlesManagerProps {
 
 export function SubtitlesManager({ tmdbId, type, title, year }: SubtitlesManagerProps) {
   const { data, mutate } = useSWR<{ entries: SubtitleEntry[] }>(
-    `/api/subtitles/list?tmdb_id=${tmdbId}`,
-    (url: string) => fetch(url).then((r) => r.json()),
+    ["subtitles/list", tmdbId],
+    async () => {
+      const res = await apiClient.subtitles.list({ tmdb_id: tmdbId });
+      if ("error" in res) throw res.error;
+      return res as { entries: SubtitleEntry[] };
+    },
   );
 
   const entries = data?.entries ?? [];

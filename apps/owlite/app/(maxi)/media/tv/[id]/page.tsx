@@ -1,6 +1,8 @@
-import { notFound } from "next/navigation";
+"use client";
+import { notFound, useParams } from "next/navigation";
 import Image from "next/image";
 import { tmdb } from "@/services/tmdb.service";
+import useSWR from "swr";
 import dayjs from "dayjs";
 import { Badge } from "@/components/ui/badge";
 import EpisodesList from "./episodes-list";
@@ -8,22 +10,26 @@ import Muted from "@/components/typography/muted";
 import Heading from "@/components/typography/heading";
 import PlayButton from "@/components/play-button";
 import { SubtitlesNavButton } from "@/components/subtitles-nav-button";
+import { useSearchParams } from "next/navigation";
 
 const BACKDROP = "https://image.tmdb.org/t/p/w1280";
 
-export default async function TvDetailPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ season?: string }>;
-}) {
-  const [{ id }, { season }] = await Promise.all([params, searchParams]);
-  const numId = Number(id);
-  if (isNaN(numId)) notFound();
-  const initialSeason = season ? Number(season) : undefined;
+function LoadingSkeleton() {
+  return <div className="fixed inset-0 bg-black" />;
+}
 
-  const details = await tmdb.tvShows.details(numId, ["credits", "episode_groups"]);
+export default function TvDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+  const initialSeason = searchParams.get("season") ? Number(searchParams.get("season")) : undefined;
+
+  const { data: details, isLoading } = useSWR(
+    !isNaN(Number(id)) ? ["tmdb/tv", Number(id)] : null,
+    () => tmdb.tvShows.details(Number(id), ["credits", "episode_groups"]),
+  );
+
+  if (isNaN(Number(id))) notFound();
+  if (isLoading) return <LoadingSkeleton />;
   if (!details || "error" in details) notFound();
 
   return (
@@ -70,9 +76,9 @@ export default async function TvDetailPage({
             ))}
           </section>
           <section className="my-4 flex items-center gap-3 flex-wrap">
-            <PlayButton type="tv" tmdbId={numId} />
+            <PlayButton type="tv" tmdbId={Number(id)} />
           </section>
-          <SubtitlesNavButton type="tv" id={numId} />
+          <SubtitlesNavButton type="tv" id={Number(id)} />
           {details.overview && (
             <p className="mb-6 max-w-xl text-white/80 leading-relaxed line-clamp-4">
               {details.overview}
@@ -94,7 +100,7 @@ export default async function TvDetailPage({
         </div>
         <div className="flex flex-col flex-1 overflow-hidden">
           <EpisodesList
-            tmdbId={numId}
+            tmdbId={Number(id)}
             overviewFallback={details.overview}
             seasonsCount={details.number_of_seasons}
             initialSeason={initialSeason}

@@ -8,6 +8,7 @@ import { profileService } from "@/services/profile.service";
 import { getClientProfileId } from "@/lib/profile-id";
 import { useProfilePreferences } from "@/hooks/use-profile-preferences";
 import { subtitles } from "@/services/api.service";
+import { url as apiUrl } from "@/services/api-client";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { usePlayerStore } from "./player-store";
@@ -140,7 +141,7 @@ export function SubtitlesPanel({
     setDownloadError(null);
     setDownloadingId(track.id);
     try {
-      const res = await fetch(track.download_url);
+      const res = await fetch(apiUrl(track.download_url));
       if (res.status === 429) {
         const data = (await res.json()) as { message?: string };
         setDownloadError(

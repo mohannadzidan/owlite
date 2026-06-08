@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { readTextFile } from "@/lib/read-text-file";
+import { apiClient } from "@/services/api-client";
 
 const LANGUAGES = [
   { code: "en", name: "English" },
@@ -89,20 +90,17 @@ export function SubtitleUploadDialog({
     }
 
     try {
-      const res = await fetch("/api/subtitles/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tmdbId, type, language, title, year, files: filePayloads }),
+      const result = await apiClient.subtitles.upload({
+        tmdbId,
+        type,
+        language,
+        title,
+        year,
+        files: filePayloads,
       });
 
-      if (res.status === 422) {
-        const data = (await res.json()) as { errors: Array<{ filename: string; reason: string }> };
-        setFileErrors(data.errors);
-        return;
-      }
-
-      if (!res.ok) {
-        toast.error("Upload failed. Please try again.");
+      if ("errors" in result) {
+        setFileErrors(result.errors);
         return;
       }
 

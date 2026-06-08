@@ -84,7 +84,10 @@ export const tmdb = new TMDB(process.env.TMDB_API_KEY!, {
     if (!oldRequest) throw new Error("Invalid input to fetch");
     const url = new URL(oldRequest.url);
 
-    return fetch("/api/proxy/tmdb" + url.pathname + url.search, oldRequest);
+    return fetch(
+      (process.env.NEXT_PUBLIC_API_URL ?? "") + "/tmdb" + url.pathname + url.search,
+      oldRequest,
+    );
   },
 });
 

@@ -142,10 +142,24 @@ After migration: replaced by `hooks/use-profile-guard.ts` client hook calling `u
 
 ## Phase Completion Log
 
-> Add a section here after each phase is implemented:
->
-> ### Phase 1 — Completed (date)
-> What was done, any deviations, files changed beyond the plan.
->
-> ### Phase 2 — Completed (date)
-> ...
+### Phase 2 — Completed (2026-06-09)
+
+Rewrote `apps/owlite/lib/profile-id.ts` to use `sessionStorage` (key `owlite_profile`) instead of `document.cookie`. Added `setClientProfileId` and `clearClientProfileId` exports. Updated `apps/owlite/app/profiles/page.tsx`: replaced async `fetch("/api/session")` in `handleSelect` with synchronous `setClientProfileId(id)`. Deleted `apps/owlite/app/api/session/` directory entirely. No deviations from the plan. `pnpm typecheck` passes clean.
+
+---
+
+### Phase 3 — Completed (2026-06-09)
+
+Updated `apps/owlite/services/tmdb.service.ts`: client-side proxy URL changed from `/api/proxy/tmdb` to `{NEXT_PUBLIC_API_URL}/tmdb`. Converted `apps/owlite/app/page.tsx` to a thin `"use client"` wrapper that just renders `<HomeClient />` — no server fetch or `<SWRConfig fallback>` needed since `HomeClient` uses `useContinueWatching()` directly and handles empty state gracefully. Converted `app/(maxi)/media/movie/[id]/page.tsx` and `app/(maxi)/media/tv/[id]/page.tsx` to client components using `useSWR` — both show a black `<LoadingSkeleton />` during load and call `notFound()` on error. TV page reads `?season` via `useSearchParams()` instead of `searchParams` prop. `pnpm typecheck` and `pnpm fmt` pass clean.
+
+---
+
+### Phase 4 — Completed (2026-06-09)
+
+Created `apps/owlite/hooks/use-profile-guard.ts` — client-side hook that calls `router.replace("/profiles")` in a `useEffect` if `getClientProfileId()` returns undefined. Added `useProfileGuard()` call at the top of `apps/owlite/app/(maxi)/layout.tsx`. Stripped `apps/owlite/proxy.ts` to a no-op (returns `NextResponse.next()` unconditionally) — the profile redirect, TMDB proxy rewrite, and HLS proxy rewrite are all removed. No `middleware.ts` file exists in the owlite root, so `proxy.ts` was already inactive as Next.js middleware. Migration is complete: zero server-side data fetching, zero Route Handlers, zero middleware proxy logic. `pnpm typecheck` and `pnpm fmt` pass clean.
+
+---
+
+### Phase 1 — Completed (2026-06-09)
+
+Created `apps/api/src/routes/tmdb.ts` — new Fastify plugin that proxies `/tmdb/*` → `https://api.themoviedb.org/*` with Bearer token from `TMDB_API_KEY`. Registered it in `apps/api/src/routes/index.ts`. Fixed `apps/api/src/routes/media.ts` line 159: changed embedded HLS segment/manifest URL prefix from `/api/hls-proxy` / `/api/hls-segment` to `/hls-proxy` / `/hls-segment` so they resolve directly against the fastify origin. No deviations from the plan. Both `owlite` and `api` typecheck clean.

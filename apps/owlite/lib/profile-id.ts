@@ -1,10 +1,14 @@
-const COOKIE_NAME = "owlite_profile";
+const KEY = "owlite_profile";
 
 export function getClientProfileId(): string | undefined {
-  if (typeof document === "undefined") return undefined;
-  return document.cookie
-    .split(";")
-    .map((c) => c.trim())
-    .find((c) => c.startsWith(`${COOKIE_NAME}=`))
-    ?.slice(COOKIE_NAME.length + 1);
+  if (typeof window === "undefined") return undefined;
+  return sessionStorage.getItem(KEY) ?? undefined;
+}
+
+export function setClientProfileId(id: string): void {
+  sessionStorage.setItem(KEY, id);
+}
+
+export function clearClientProfileId(): void {
+  sessionStorage.removeItem(KEY);
 }

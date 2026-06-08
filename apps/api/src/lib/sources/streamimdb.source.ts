@@ -95,7 +95,7 @@ const streamImdbSource: VideoSource = {
 
     return {
       type: "hls",
-      master_manifest_url: `/api/hls-proxy?p=${encoded}`,
+      master_manifest_url: `/hls-proxy?p=${encoded}`,
       fileName: bestStream.fileName?.split("/").pop(),
     };
   },
