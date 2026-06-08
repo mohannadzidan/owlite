@@ -3,11 +3,11 @@ import { requireProfile } from "../hooks/require-profile";
 import * as profileService from "../services/profile.service";
 
 export default fp(async (fastify) => {
-  fastify.addHook("onRequest", requireProfile);
-
-  fastify.get("/profile/preferences", async (req) =>
-    profileService.getPreferences(req.profileId),
-  );
+  fastify.addHook("onRequest", async (request, reply) => {
+    // Custom logic (e.g., checking tokens, adding custom logs, etc.)
+    request.log.info("Running custom hook!");
+  });
+  fastify.get("/profile/preferences", async (req) => profileService.getPreferences(req.profileId));
 
   fastify.patch("/profile/preferences", async (req) => {
     profileService.patchPreferences(req.profileId, req.body as Record<string, unknown>);

@@ -1,84 +1,26 @@
-import type {
-  LocalMapping,
-  PlayResponse,
-  ResolveParams,
-  SubtitleTrack,
-  VideoSource,
-} from "@/lib/types";
-
-import type { ClientErrorPayload, ClientLogPayload } from "@/lib/observability";
-import { request } from "./request";
+import { apiClient, request } from "./api-client";
 
 export { request };
 
 export const sources = {
-  list: (tmdbId: number, mediaType: "movie" | "tv") =>
-    request<Omit<VideoSource, "resolve" | "has">[],
-      "could_not_resolve" | "bad_request" | "not_found"
-    >(`/api/sources?tmdb_id=${tmdbId}&media_type=${mediaType}`),
-
-  play: (params: { source_id: string } & Omit<ResolveParams, "userAgent">) =>
-    request<PlayResponse, "could_not_resolve" | "bad_request" | "not_found">("/api/play", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(params),
-    }),
+  list: apiClient.media.sources,
+  play: apiClient.media.play,
 };
 
 export const subtitles = {
-  search: (params: {
-    imdb_id?: string;
-    tmdb_id?: number;
-    season?: number;
-    episode?: number;
-    language?: string;
-  }) =>
-    request<{ tracks: SubtitleTrack[] }>("/api/subtitles/search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(params),
-    }),
-
-  downloadUrl: (fileId: number) => `/api/subtitles/download?file_id=${fileId}`,
-
-  streamUrl: (cacheKey: string) =>
-    `/api/subtitles/stream?cache_key=${encodeURIComponent(cacheKey)}`,
+  search: apiClient.subtitles.search,
+  downloadUrl: apiClient.subtitles.downloadUrl,
+  streamUrl: apiClient.subtitles.streamUrl,
 };
 
 export const mappings = {
-  list: () => request<LocalMapping[]>("/api/mappings"),
-
-  create: (mapping: LocalMapping) =>
-    request<LocalMapping, "bad_request">("/api/mappings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(mapping),
-    }),
-
-  update: (index: number, mapping: LocalMapping) =>
-    request<LocalMapping, "bad_request" | "not_found">("/api/mappings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ index, ...mapping }),
-    }),
-
-  remove: (index: number) =>
-    request<{ ok: boolean }, "bad_request" | "not_found">(`/api/mappings?index=${index}`, {
-      method: "DELETE",
-    }),
+  list: apiClient.mappings.list,
+  create: apiClient.mappings.create,
+  update: apiClient.mappings.update,
+  remove: apiClient.mappings.remove,
 };
 
 export const observability = {
-  reportError: (payload: ClientErrorPayload) =>
-    request("/api/client-errors", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }),
-  reportLog: (payload: ClientLogPayload) =>
-    request("/api/client-logs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }),
+  reportError: apiClient.observability.reportError,
+  reportLog: apiClient.observability.reportLog,
 };

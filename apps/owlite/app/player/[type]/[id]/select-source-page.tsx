@@ -33,7 +33,7 @@ export default function SelectSourceDialog({ type, season, episode, id }: Select
     isLoading,
     mutate,
   } = useSWR([type, id, season, episode], async () => {
-    const result = await sources.list(parseInt(id), type!);
+    const result = await sources.list();
     if ("error" in result) throw result;
     return result;
   });

@@ -8,7 +8,7 @@ import observabilityPlugin from "./observability";
 
 export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(profilesPlugin);
-  await fastify.register(profileDataPlugin);
+  await fastify.register(profileDataPlugin, { prefix: "/profile" });
   await fastify.register(subtitlesPlugin);
   await fastify.register(mediaPlugin);
   await fastify.register(mappingsPlugin);

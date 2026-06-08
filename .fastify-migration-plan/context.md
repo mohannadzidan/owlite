@@ -115,7 +115,7 @@ DB_PATH=../owlite/data/owlite.db   # points at same SQLite file as owlite
 | 4 | **Done** | `/subtitles/list|search|download|stream|upload` (7 routes) |
 | 5 | **Done** | `/sources`, `/play`, `/stream`, `/hls-proxy`, `/hls-segment` (5 routes) |
 | 6 | **Done** | `/mappings` CRUD + `/client-errors|logs` (6 routes) |
-| 7 | Pending | Delete Next.js routes, remove rewrites, wire apiClient, clean deps |
+| 7 | **Done** | Delete Next.js routes, remove rewrites, wire apiClient, clean deps |
 
 The rewrite bridge in `next.config.ts` means each phase can delete Next.js routes one-by-one and Fastify picks them up automatically — no big-bang cutover.
 
