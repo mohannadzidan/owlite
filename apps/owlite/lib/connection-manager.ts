@@ -1,5 +1,7 @@
 "use client";
 
+import { io, type Socket } from "socket.io-client";
+import type { ClientToServerEvents, ServerToClientEvents } from "@owlite/types";
 import { getDeviceId, getDeviceName } from "@/lib/device-identity";
 import {
   addPairing,
@@ -7,21 +9,12 @@ import {
   removePairing as removePairingFromStorage,
   type StoredPairing,
 } from "@/lib/pairings-storage";
+import type { RemoteMessage } from "@/lib/remote-messages";
 import {
-  getPairingStatus,
-  type ConnectionType,
+  useRemoteControlStore,
   type PairingRecord,
   type PairingStatus,
-  useRemoteControlStore,
 } from "@/lib/remote-control-store";
-import type { RemoteMessage } from "@/lib/remote-messages";
-import { remoteControlService } from "@/services/remote-control.service";
-import type SimplePeer from "simple-peer";
-
-interface ManagedPeer {
-  peer: SimplePeer.Instance;
-  pollInterval: ReturnType<typeof setInterval>;
-}
 
 function toRecord(status: PairingStatus) {
   return (p: StoredPairing): PairingRecord => ({
@@ -33,58 +26,9 @@ function toRecord(status: PairingStatus) {
   });
 }
 
-type CandidateStats = { candidateType?: string; address?: string; ip?: string } | undefined;
-
-// Chrome obfuscates local IPs as mDNS .local names; treat those and "host" type as local.
-function isLocalCandidate(c: CandidateStats): boolean {
-  if (!c) return false;
-  if (c.candidateType === "host") return true;
-  const addr = c.address ?? c.ip ?? "";
-  return (
-    addr.endsWith(".local") ||
-    /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|127\.|::1$|fd[0-9a-f]{2}:)/i.test(addr)
-  );
-}
-
-async function detectConnectionType(peer: SimplePeer.Instance): Promise<ConnectionType> {
-  const pc = (peer as unknown as { _pc?: RTCPeerConnection })._pc;
-  if (!pc) return "internet";
-
-  try {
-    const stats = await pc.getStats();
-    let result: ConnectionType = "internet";
-
-    stats.forEach((report) => {
-      if (report.type !== "candidate-pair") return;
-      const pair = report as unknown as {
-        state?: string;
-        localCandidateId: string;
-        remoteCandidateId: string;
-      };
-      // "succeeded" means the connectivity check passed — this is the active pair.
-      // "nominated" is only set once ICE reaches "completed", not just "connected".
-      if (pair.state !== "succeeded") return;
-
-      const local = stats.get(pair.localCandidateId) as CandidateStats;
-      const remote = stats.get(pair.remoteCandidateId) as CandidateStats;
-
-      if (local?.candidateType === "relay" || remote?.candidateType === "relay") {
-        result = "relay";
-      } else if (isLocalCandidate(local) && isLocalCandidate(remote)) {
-        result = "lan";
-      }
-    });
-
-    return result;
-  } catch {
-    return "internet";
-  }
-}
-
 class ConnectionManager {
+  private socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
   private initialized = false;
-  private peers = new Map<string, ManagedPeer>();
-  private presencePolls = new Map<string, ReturnType<typeof setInterval>>();
   private pingIntervals = new Map<string, ReturnType<typeof setInterval>>();
   private messageHandler: ((pairId: string, msg: RemoteMessage) => void) | null = null;
 
@@ -99,201 +43,170 @@ class ConnectionManager {
   async initialize() {
     if (this.initialized) return;
     this.initialized = true;
+    console.log("Connectiong", process.env.NEXT_PUBLIC_API_URL);
+    const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
+      process.env.NEXT_PUBLIC_API_URL,
+      {
+        path: "/api/socket.io",
+      },
+    );
+    this.socket = socket;
 
-    const deviceId = getDeviceId();
-    remoteControlService.sendHeartbeat(deviceId);
-    setInterval(() => remoteControlService.sendHeartbeat(deviceId), 30_000);
+    socket.on("connect", () => {
+      this.registerDevice();
+    });
 
-    const stored = getPairings();
-    useRemoteControlStore.getState().setReady(deviceId, stored.map(toRecord("offline")));
+    socket.on("disconnect", () => {
+      // All peers are considered offline until reconnect re-registers and server confirms
+      const { pairings, setPairingStatus, setPendingSessionCode } =
+        useRemoteControlStore.getState();
+      for (const p of pairings) {
+        if (p.status !== "offline") setPairingStatus(p.pairId, "offline");
+        this.stopPing(p.pairId);
+      }
+      // Server-side session code is lost on disconnect
+      setPendingSessionCode(null);
+    });
 
-    for (const p of stored) {
-      this.watchPeer(p);
-    }
-  }
-
-  async createSession(): Promise<string> {
-    const { code } = await remoteControlService.createSession(getDeviceId(), getDeviceName());
-    useRemoteControlStore.getState().setPendingSessionCode(code);
-
-    const poll = setInterval(async () => {
-      const result = await remoteControlService.pollSession(code);
-      if (!result.paired) return;
-      clearInterval(poll);
-
+    // TV (acceptor) receives this when a remote (initiator) joins their session code
+    socket.on("session_accepted", ({ pairId, initiatorDeviceId, initiatorName }) => {
       const p: StoredPairing = {
-        pairId: result.pairId,
+        pairId,
         role: "acceptor",
-        peerDeviceId: result.initiatorDeviceId,
-        peerDeviceName: result.initiatorName,
+        peerDeviceId: initiatorDeviceId,
+        peerDeviceName: initiatorName,
         createdAt: Date.now(),
       };
       addPairing(p);
       useRemoteControlStore.getState().setPendingSessionCode(null);
-      useRemoteControlStore.getState().addPairing(toRecord("connecting")(p));
-      this.watchPeer(p);
-      this.connectPeer(p);
-    }, 1_000);
-
-    return code;
-  }
-
-  async acceptSession(code: string): Promise<void> {
-    const result = await remoteControlService.acceptSession(code, getDeviceId(), getDeviceName());
-
-    const p: StoredPairing = {
-      pairId: result.pairId,
-      role: "initiator",
-      peerDeviceId: result.acceptorDeviceId,
-      peerDeviceName: result.acceptorName,
-      createdAt: Date.now(),
-    };
-    addPairing(p);
-    useRemoteControlStore.getState().addPairing(toRecord("connecting")(p));
-    this.watchPeer(p);
-    this.connectPeer(p);
-  }
-
-  private watchPeer(p: StoredPairing) {
-    if (this.presencePolls.has(p.pairId)) return;
-
-    const interval = setInterval(async () => {
-      const online = await remoteControlService.checkPresence(p.peerDeviceId).catch(() => false);
-      const currentStatus = getPairingStatus(p.pairId);
-
-      if (online && currentStatus === "offline") {
-        this.connectPeer(p);
-      }
-      if (!online && currentStatus === "connected") {
-        this.teardownPeer(p.pairId);
-        useRemoteControlStore.getState().setPairingStatus(p.pairId, "offline");
-      }
-    }, 5_000);
-
-    this.presencePolls.set(p.pairId, interval);
-  }
-
-  private connectPeer(p: StoredPairing) {
-    this.teardownPeer(p.pairId);
-    useRemoteControlStore.getState().setPairingStatus(p.pairId, "connecting");
-
-    const isInitiator = p.role === "initiator";
-    const from = isInitiator ? "initiator" : ("acceptor" as const);
-    const pollFrom = isInitiator ? "acceptor" : ("initiator" as const);
-
-    import("simple-peer").then(({ default: SimplePeerLib }) => {
-      if (!this.initialized) return;
-
-      const peer = new SimplePeerLib({ initiator: isInitiator, trickle: true });
-
-      peer.on("signal", (data) => {
-        remoteControlService.sendPairSignal(p.pairId, from, data as object);
-      });
-
-      peer.on("connect", () => {
-        clearInterval(pollInterval);
-        useRemoteControlStore.getState().setPairingStatus(p.pairId, "connected");
-
-        if (!isInitiator && typeof window !== "undefined") {
-          // Acceptor (TV) sends its viewport dimensions so the initiator can map trackpad coords
-          peer.send(
-            JSON.stringify({
-              type: "handshake",
-              screenWidth: window.innerWidth,
-              screenHeight: window.innerHeight,
-            }),
-          );
-        }
-
-        if (isInitiator) {
-          // Start pinging every 2s to measure RTT
-          const pingInterval = setInterval(() => {
-            if (!peer.destroyed) {
-              peer.send(JSON.stringify({ type: "ping", sentAt: Date.now() }));
-            }
-          }, 2_000);
-          this.pingIntervals.set(p.pairId, pingInterval);
-
-          // Detect connection type once ICE has settled
-          setTimeout(() => {
-            detectConnectionType(peer).then((connectionType) => {
-              useRemoteControlStore.getState().setPairingStats(p.pairId, { connectionType });
-            });
-          }, 1_000);
-        }
-      });
-
-      peer.on("close", () => {
-        clearInterval(pollInterval);
-        useRemoteControlStore.getState().setPairingStatus(p.pairId, "offline");
-      });
-
-      peer.on("error", () => {
-        // Connection errors surface via the close event
-      });
-
-      peer.on("data", (data: Uint8Array) => {
-        try {
-          const msg = JSON.parse(data.toString()) as RemoteMessage;
-
-          if (msg.type === "handshake") {
-            useRemoteControlStore
-              .getState()
-              .setPairingScreenSize(p.pairId, msg.screenWidth, msg.screenHeight);
-          } else if (msg.type === "ping") {
-            // Echo back so the initiator can measure RTT
-            peer.send(JSON.stringify({ type: "pong", sentAt: msg.sentAt }));
-          } else if (msg.type === "pong") {
-            const latencyMs = Date.now() - msg.sentAt;
-            useRemoteControlStore.getState().setPairingStats(p.pairId, { latencyMs });
-          } else {
-            this.messageHandler?.(p.pairId, msg);
-          }
-        } catch {
-          // ignore malformed messages
-        }
-      });
-
-      const pollInterval = setInterval(() => {
-        remoteControlService.drainPairSignals(p.pairId, pollFrom).then((signals) => {
-          for (const s of signals) {
-            if (!peer.destroyed) peer.signal(s as SimplePeer.SignalData);
-          }
+      useRemoteControlStore.getState().addPairing(toRecord("connected")(p));
+      if (typeof window !== "undefined") {
+        this.sendRemoteMessage(pairId, {
+          type: "handshake",
+          screenWidth: window.innerWidth,
+          screenHeight: window.innerHeight,
         });
-      }, 500);
+      }
+    });
 
-      this.peers.set(p.pairId, { peer, pollInterval });
+    socket.on("peer_online", ({ pairId }) => {
+      useRemoteControlStore.getState().setPairingStatus(pairId, "connected");
+      const stored = getPairings().find((p) => p.pairId === pairId);
+      if (stored?.role === "initiator") {
+        this.startPing(pairId);
+      } else if (stored?.role === "acceptor" && typeof window !== "undefined") {
+        // Re-send screen dimensions whenever the initiator reconnects
+        this.sendRemoteMessage(pairId, {
+          type: "handshake",
+          screenWidth: window.innerWidth,
+          screenHeight: window.innerHeight,
+        });
+      }
+    });
+
+    socket.on("peer_offline", ({ pairId }) => {
+      useRemoteControlStore.getState().setPairingStatus(pairId, "offline");
+      this.stopPing(pairId);
+    });
+
+    socket.on("remote_message", ({ pairId, msg }) => {
+      this.handleMessage(pairId, msg);
+    });
+
+    const stored = getPairings();
+    useRemoteControlStore.getState().setReady(getDeviceId(), stored.map(toRecord("offline")));
+  }
+
+  private registerDevice() {
+    const stored = getPairings();
+    this.socket?.emit("register", {
+      deviceId: getDeviceId(),
+      deviceName: getDeviceName(),
+      pairings: stored.map(({ pairId, peerDeviceId }) => ({ pairId, peerDeviceId })),
     });
   }
 
-  private teardownPeer(pairId: string) {
-    const existing = this.peers.get(pairId);
-    if (!existing) return;
-    clearInterval(existing.pollInterval);
-    existing.peer.destroy();
-    this.peers.delete(pairId);
+  private handleMessage(pairId: string, msg: RemoteMessage) {
+    if (msg.type === "handshake") {
+      useRemoteControlStore
+        .getState()
+        .setPairingScreenSize(pairId, msg.screenWidth, msg.screenHeight);
+    } else if (msg.type === "ping") {
+      this.sendRemoteMessage(pairId, { type: "pong", sentAt: msg.sentAt });
+    } else if (msg.type === "pong") {
+      useRemoteControlStore
+        .getState()
+        .setPairingStats(pairId, { latencyMs: Date.now() - msg.sentAt });
+    } else {
+      this.messageHandler?.(pairId, msg);
+    }
+  }
 
-    const pingInterval = this.pingIntervals.get(pairId);
-    if (pingInterval) {
-      clearInterval(pingInterval);
+  private startPing(pairId: string) {
+    this.stopPing(pairId);
+    const interval = setInterval(() => {
+      this.sendRemoteMessage(pairId, { type: "ping", sentAt: Date.now() });
+    }, 2_000);
+    this.pingIntervals.set(pairId, interval);
+  }
+
+  private stopPing(pairId: string) {
+    const interval = this.pingIntervals.get(pairId);
+    if (interval) {
+      clearInterval(interval);
       this.pingIntervals.delete(pairId);
     }
   }
 
+  async createSession(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      if (!this.socket) return reject(new Error("socket not initialized"));
+      this.socket.emit("create_session", (res) => {
+        if ("error" in res) reject(new Error(res.error));
+        else {
+          useRemoteControlStore.getState().setPendingSessionCode(res.code);
+          resolve(res.code);
+        }
+      });
+    });
+  }
+
+  async acceptSession(code: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!this.socket) return reject(new Error("socket not initialized"));
+      this.socket.emit(
+        "accept_session",
+        { code, deviceId: getDeviceId(), deviceName: getDeviceName() },
+        (res) => {
+          if ("error" in res) {
+            reject(new Error(res.error));
+            return;
+          }
+          const p: StoredPairing = {
+            pairId: res.pairId,
+            role: "initiator",
+            peerDeviceId: res.acceptorDeviceId,
+            peerDeviceName: res.acceptorName,
+            createdAt: Date.now(),
+          };
+          addPairing(p);
+          useRemoteControlStore.getState().addPairing(toRecord("connected")(p));
+          this.startPing(p.pairId);
+          resolve();
+        },
+      );
+    });
+  }
+
   sendRemoteMessage(pairId: string, msg: RemoteMessage) {
-    this.peers.get(pairId)?.peer.send(JSON.stringify(msg));
+    this.socket?.emit("remote_message", { pairId, msg });
   }
 
   async removePairing(pairId: string) {
-    this.teardownPeer(pairId);
-    const poll = this.presencePolls.get(pairId);
-    if (poll) {
-      clearInterval(poll);
-      this.presencePolls.delete(pairId);
-    }
+    this.stopPing(pairId);
+    this.socket?.emit("remove_pairing", { pairId });
     removePairingFromStorage(pairId);
     useRemoteControlStore.getState().removePairing(pairId);
-    await remoteControlService.removePairing(pairId);
   }
 }
 

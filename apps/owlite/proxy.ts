@@ -19,6 +19,16 @@ export function proxy(request: NextRequest) {
   // Proxy TMDB API requests
   if (pathname.startsWith("/api/proxy/tmdb")) {
     const requestHeaders = new Headers(request.headers);
+    console.log(
+      "Proxying TMDB API request:",
+      pathname,
+      "key=",
+      process.env.TMDB_API_KEY,
+      "env=",
+      process.env.NODE_ENV,
+      "window=",
+      typeof window !== "undefined",
+    );
     requestHeaders.set("Authorization", `Bearer ${process.env.TMDB_API_KEY}`);
 
     const externalApiUrl =

@@ -76,12 +76,3 @@ export const profileSubtitles = sqliteTable(
   },
   (t) => [uniqueIndex("profile_subtitles_unique").on(t.profileId, t.tmdbId, t.season, t.episode)],
 );
-
-export const remotePairings = sqliteTable("remote_pairings", {
-  id: text("id").primaryKey(),
-  initiatorDeviceId: text("initiator_device_id").notNull(),
-  acceptorDeviceId: text("acceptor_device_id").notNull(),
-  initiatorName: text("initiator_name").notNull(),
-  acceptorName: text("acceptor_name").notNull(),
-  createdAt: integer("created_at").notNull(),
-});

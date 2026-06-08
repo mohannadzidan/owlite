@@ -1,8 +1,9 @@
-import 'fastify';
-import { Server } from 'socket.io';
+import "fastify";
+import { Server } from "socket.io";
+import type { ClientToServerEvents, ServerToClientEvents } from "@owlite/types";
 
-declare module 'fastify' {
+declare module "fastify" {
   interface FastifyInstance {
-    io: Server;
+    io: Server<ClientToServerEvents, ServerToClientEvents>;
   }
 }

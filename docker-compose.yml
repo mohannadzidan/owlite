@@ -1,0 +1,32 @@
+services:
+  nextjs:
+    build:
+      context: .
+      dockerfile: apps/owlite/Dockerfile
+    env_file:
+      - path: ./apps/owlite/.env.production
+        required: true
+    volumes:
+      - owlite-data:/app/apps/owlite/data
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+
+  proxy:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.lighttpd
+    ports:
+      - "80:80"
+    depends_on:
+      - nextjs
+      - api
+    restart: unless-stopped
+
+volumes:
+  # Persists the SQLite database across container restarts
+  owlite-data:
