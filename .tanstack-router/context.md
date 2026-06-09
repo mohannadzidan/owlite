@@ -283,6 +283,16 @@ All UI/runtime deps are in `apps/web/package.json`. Key ones added:
 | `components.json` | shadcn/ui config (rsc: false, css: src/styles.css) |
 | `index.html` | Google Fonts (Lato/Patrick Hand/Geist Mono) + flex-gap detection script |
 
+### components/ Copy (Phase 3) — Notes
+
+- Removed all `"use client"` directives (meaningless in Vite)
+- Replaced `next/link` → `{ Link } from "@tanstack/react-router"` with `href` → `to`; dynamic route `to` values cast as `any` pending Phase 4 route registration
+- Replaced `useRouter` → `useNavigate`, `usePathname` → `useLocation().pathname`, `router.back()` → `window.history.back()`
+- `cursor-overlay.tsx`: removed `useRouter` entirely, uses `window.history.back()` directly
+- Added missing deps: `react-day-picker`, `@base-ui/react`, `next-themes` (used by shadcn/ui components)
+- Fixed `ComponentProps` imports to use `type` keyword (`verbatimModuleSyntax` requires it)
+- All `to` path casts (`as any`) will be removed in Phase 4 once route types are generated
+
 ### Babel note (DO NOT create .babelrc for apps/web)
 
 `apps/owlite` has a `.babelrc` with `@babel/preset-env` + `useBuiltIns: "usage"` + `corejs: 3` for automatic polyfill injection. **Vite does not use this** — it uses esbuild for transpilation. For apps/web:
@@ -315,7 +325,7 @@ Copied verbatim via `cp -r`. Changes made:
 - Zero TS errors after changes
 
 ### lib/ + services/ + hooks/ Copy (Phase 2) — COMPLETE
-### components/ Copy (Phase 3) — NOT STARTED
+### components/ Copy (Phase 3) — COMPLETE
 ### Route Setup (Phase 4) — NOT STARTED
 ### Polyfills (Phase 5) — NOT STARTED
 ### Environment Variables (Phase 6) — NOT STARTED
