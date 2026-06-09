@@ -156,7 +156,15 @@ Updated `apps/owlite/services/tmdb.service.ts`: client-side proxy URL changed fr
 
 ### Phase 4 — Completed (2026-06-09)
 
-Created `apps/owlite/hooks/use-profile-guard.ts` — client-side hook that calls `router.replace("/profiles")` in a `useEffect` if `getClientProfileId()` returns undefined. Added `useProfileGuard()` call at the top of `apps/owlite/app/(maxi)/layout.tsx`. Stripped `apps/owlite/proxy.ts` to a no-op (returns `NextResponse.next()` unconditionally) — the profile redirect, TMDB proxy rewrite, and HLS proxy rewrite are all removed. No `middleware.ts` file exists in the owlite root, so `proxy.ts` was already inactive as Next.js middleware. Migration is complete: zero server-side data fetching, zero Route Handlers, zero middleware proxy logic. `pnpm typecheck` and `pnpm fmt` pass clean.
+Created `apps/owlite/hooks/use-profile-guard.ts` — client-side hook that calls `router.replace("/profiles")` in a `useEffect` if `getClientProfileId()` returns undefined. Stripped `apps/owlite/proxy.ts` to a no-op (returns `NextResponse.next()` unconditionally) — the profile redirect, TMDB proxy rewrite, and HLS proxy rewrite are all removed. No `middleware.ts` file exists in the owlite root, so `proxy.ts` was already inactive as Next.js middleware. Migration is complete: zero server-side data fetching, zero Route Handlers, zero middleware proxy logic. `pnpm typecheck` and `pnpm fmt` pass clean.
+
+**Post-phase fixes (2026-06-09):**
+
+- **Subtitles page was still a Server Component**: Converted `app/(maxi)/media/[type]/[id]/subtitles/page.tsx` to `"use client"` with two separate `useSWR` hooks (one for movie, one for TV) to avoid union type complexity.
+- **`subtitles-manager.tsx` used hardcoded `/api/subtitles/list`**: Replaced all `fetch("/api/subtitles/list", ...)` calls with `apiClient.subtitles.delete()` / `apiClient.subtitles.setFavorite()`, and the SWR fetcher with `apiClient.subtitles.list()`.
+- **`subtitle-upload-dialog.tsx` used hardcoded `/api/subtitles/upload`**: Replaced with `apiClient.subtitles.upload()`. Updated `api-client.ts` upload handler to properly return `{ errors: [...] }` on 422 vs `{ ids: [...] }` on success.
+- **Subtitle `download_url` embedded `/api/subtitles/stream` and `/api/subtitles/download`**: Fixed in `apps/api/src/services/subtitle.service.ts` — dropped the `/api` prefix (same pattern as HLS fix in Phase 1). Wrapped `track.download_url` with `apiUrl()` in `subtitles-panel.tsx` and `page.tsx` so relative paths resolve against `NEXT_PUBLIC_API_URL` (fastify), not `window.location`.
+- **Profile guard moved to root layout**: Replaced the `useProfileGuard()` hook in `(maxi)/layout.tsx` with a `<ProfileGuard>` client component in `app/layout.tsx` that checks the pathname and skips redirect when on `/profiles`. This now also covers the `/player/...` route which was previously unguarded.
 
 ---
 
