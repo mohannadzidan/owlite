@@ -11,4 +11,7 @@ export default defineConfig({
     tanstackRouter({ target: 'react', autoCodeSplitting: true }),
     viteReact(),
   ],
+  server: {
+    host: "0.0.0.0"
+  }
 })

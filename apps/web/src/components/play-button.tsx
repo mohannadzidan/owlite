@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { paths } from "@/lib/paths";
 import { useContinueWatching } from "@/hooks/use-continue-watching";
 import { Play } from "lucide-react";
 import { Link } from "@tanstack/react-router";
@@ -15,11 +14,19 @@ export default function PlayButton({ type, tmdbId }: { type: "tv" | "movie"; tmd
   return (
     <Button size="lg" className="text-xl p-6" asChild>
       <Link
-        to={
-          type === "tv"
-            ? paths.player("tv", tmdbId, { episode, season })
-            : paths.player("movie", tmdbId, {})
-        }
+        // to={
+        //   type === "tv"
+        //     ? paths.player("tv", tmdbId, { episode, season })
+        //     : paths.player("movie", tmdbId, {})
+        // }
+
+        to={"/player/$type/$id"}
+        params={{ id: tmdbId.toString(), type }}
+        search={{
+          episode: type === "tv" ? episode.toString() : undefined,
+          season: type === "tv" ? season.toString() : undefined,
+          source: undefined,
+        }}
       >
         <Play /> {text}
         {record && type === "tv" && (

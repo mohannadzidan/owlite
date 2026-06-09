@@ -1,28 +1,22 @@
-import { Outlet, createRootRoute } from '@tanstack/react-router'
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import { TanStackDevtools } from '@tanstack/react-devtools'
-
-import '../styles.css'
+import { Outlet, createRootRoute } from "@tanstack/react-router";
+import { RemoteControlProvider } from "@/components/remote/remote-control-provider";
+import { ProfileGuard } from "@/components/profile-guard";
+import { Toaster } from "@/components/ui/sonner";
+import { CursorOverlay } from "@/components/remote/cursor-overlay";
+import "@/styles.css";
 
 export const Route = createRootRoute({
-  component: RootComponent,
-})
+  component: RootLayout,
+});
 
-function RootComponent() {
+function RootLayout() {
   return (
-    <>
-      <Outlet />
-      <TanStackDevtools
-        config={{
-          position: 'bottom-right',
-        }}
-        plugins={[
-          {
-            name: 'TanStack Router',
-            render: <TanStackRouterDevtoolsPanel />,
-          },
-        ]}
-      />
-    </>
-  )
+    <RemoteControlProvider>
+      <ProfileGuard>
+        <Outlet />
+        <Toaster />
+        <CursorOverlay />
+      </ProfileGuard>
+    </RemoteControlProvider>
+  );
 }

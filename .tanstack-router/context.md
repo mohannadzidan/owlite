@@ -326,8 +326,27 @@ Copied verbatim via `cp -r`. Changes made:
 
 ### lib/ + services/ + hooks/ Copy (Phase 2) — COMPLETE
 ### components/ Copy (Phase 3) — COMPLETE
-### Route Setup (Phase 4) — NOT STARTED
-### Polyfills (Phase 5) — NOT STARTED
+### Route Setup (Phase 4) — COMPLETE
+All route files created under `apps/web/src/routes/`. Key decisions:
+- `__root.tsx`: providers (RemoteControlProvider, ProfileGuard, Toaster, CursorOverlay), imports styles.css
+- `index.tsx`: renders HomeClient; `home-client.tsx` uses `useLocation().href` to extract search string (TanStack Router's `location.search` is typed as union of all search schemas, not a plain string)
+- `profiles/index.tsx`: self-contained, uses `useNavigate` for redirect after profile select
+- `_maxi.tsx`: pathless layout with sticky nav; uses `window.history.back()` for back button
+- `_maxi/media/movie/$id.tsx` and `_maxi/media/tv/$id.tsx`: use `Route.useParams()`, movie uses `notFound()` from `@tanstack/react-router`; TV uses `validateSearch` for `?season` param
+- `_maxi/media/tv/-episodes-list.tsx`: prefixed with `-` to exclude from route tree (co-located component, not a route)
+- `_maxi/media/$type/$id/subtitles.tsx`: uses `Route.useParams()` for `type` and `id`
+- `_maxi/remote/index.tsx` and `_maxi/remote/controls.tsx`: controls uses `validateSearch` for `?pairId`
+- `_maxi/settings.tsx`: settings page, shortcuts, direct copy with minor cleanup
+- `player/$type/$id.tsx`: uses `validateSearch` for `season/episode/source`; `process.env.NEXT_PUBLIC_API_URL` → `import.meta.env.VITE_API_URL`; player support files in `src/player/`
+- `src/player/`: contains player.tsx, player-controls.tsx, player-store.ts, select-source-page.tsx, subtitle-overlay.tsx, subtitles-panel.tsx
+- `src/home-client.tsx`, `src/hero.tsx`, `src/poster-card.tsx`: co-located home components; `next/image` → `<img>`, `next/link` → TanStack Router Link, `href` → `to`
+- Added deps: `ts-pattern`, `dayjs`, `nanoid`
+
+### Polyfills (Phase 5) — COMPLETE
+- `src/polyfills.ts`: `import 'core-js/stable'` + WeakRef polyfill (copied verbatim from `instrumentation-client.ts`)
+- `src/main.tsx`: `import './polyfills'` as first import
+- `build.target: 'chrome81'` and `browserslist: ['chrome 81']` already in place from Phase 1
+- `postcss-flex-gap-polyfill.cjs` and `postcss.config.mjs` wired up from Phase 1
 ### Environment Variables (Phase 6) — NOT STARTED
 ### Observability (Phase 7) — NOT STARTED
 ### Workspace Integration (Phase 8) — NOT STARTED
