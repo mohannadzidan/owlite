@@ -347,6 +347,9 @@ All route files created under `apps/web/src/routes/`. Key decisions:
 - `src/main.tsx`: `import './polyfills'` as first import
 - `build.target: 'chrome81'` and `browserslist: ['chrome 81']` already in place from Phase 1
 - `postcss-flex-gap-polyfill.cjs` and `postcss.config.mjs` wired up from Phase 1
-### Environment Variables (Phase 6) — NOT STARTED
+### Environment Variables (Phase 6) — COMPLETE
+- `.env.development`, `.env.production`, `.env.example` already created in Phase 2 with `VITE_API_URL`
+- Zero `NEXT_PUBLIC_` or `process.env` references in `apps/web/src/` (all handled in Phase 2)
+- Created `src/env.d.ts` with `ImportMetaEnv` interface for typed `import.meta.env.VITE_API_URL`
 ### Observability (Phase 7) — NOT STARTED
 ### Workspace Integration (Phase 8) — NOT STARTED
