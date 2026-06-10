@@ -1,5 +1,4 @@
-import fp from "fastify-plugin";
-import { FastifyReply } from "fastify";
+import { FastifyInstance, FastifyReply } from "fastify";
 import { z } from "zod";
 import {
   listProfiles,
@@ -13,13 +12,13 @@ const createBodySchema = z.object({ name: z.string().min(1).trim() });
 const updateBodySchema = z.object({
   name: z.string().min(1).trim().optional(),
   avatarSeed: z.string().optional(),
-});
+})
 
 function notFound(reply: FastifyReply) {
   return reply.code(404).send({ error: { code: "not_found", message: "Profile not found" } });
 }
 
-export default fp(async (fastify) => {
+export default async function (fastify: FastifyInstance) {
   fastify.get("/profiles", async () => listProfiles());
 
   fastify.post("/profiles", async (req, reply) => {
@@ -133,4 +132,4 @@ export default fp(async (fastify) => {
     profileService.saveProfileSubtitles(profileId, tmdbId, season, episode, subtitleUrl);
     return { ok: true };
   });
-});
+}

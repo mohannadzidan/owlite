@@ -1,7 +1,7 @@
-import fp from "fastify-plugin";
+import { FastifyInstance } from "fastify";
 import * as mappingService from "../services/mapping.service";
 
-export default fp(async (fastify) => {
+export default async function (fastify: FastifyInstance) {
   fastify.get("/mappings", async () => mappingService.listMappings());
 
   fastify.post("/mappings", async (req, reply) => {
@@ -24,4 +24,4 @@ export default fp(async (fastify) => {
       return reply.code(404).send({ error: { code: "not_found", message: "Mapping not found" } });
     return { ok: true };
   });
-});
+}

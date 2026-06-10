@@ -1,4 +1,4 @@
-import fp from "fastify-plugin";
+import { FastifyInstance } from "fastify";
 import fs from "fs";
 import path from "path";
 import * as mediaService from "../services/media.service";
@@ -41,7 +41,8 @@ function encode(u: string, r: string): string {
   return Buffer.from(JSON.stringify({ u, r })).toString("base64url");
 }
 
-export default fp(async (fastify) => {
+export default async function (fastify: FastifyInstance) {
+  const { prefix } = fastify;
   // GET /sources
   fastify.get("/sources", async () => {
     return mediaService.listSources();
@@ -60,10 +61,11 @@ export default fp(async (fastify) => {
     }
 
     try {
-      const result = await mediaService.resolveMedia(source_id, {
-        ...(resolveParams as ResolveParams),
-        userAgent,
-      });
+      const result = await mediaService.resolveMedia(
+        source_id,
+        { ...(resolveParams as ResolveParams), userAgent },
+        prefix,
+      );
       return result;
     } catch (err: any) {
       if (err.statusCode === 404)
@@ -128,6 +130,7 @@ export default fp(async (fastify) => {
 
     const { u: manifestUrl, r: referer } = data;
 
+
     let upstream: Response;
     try {
       upstream = await fetch(manifestUrl, {
@@ -156,7 +159,9 @@ export default fp(async (fastify) => {
           abs = t;
         }
         const enc = encode(abs, referer);
-        return abs.includes(".m3u8") ? `/hls-proxy?p=${enc}` : `/hls-segment?p=${enc}`;
+        return abs.includes(".m3u8")
+          ? `${prefix}/hls-proxy?p=${enc}`
+          : `${prefix}/hls-segment?p=${enc}`;
       })
       .join("\n");
 
@@ -207,4 +212,4 @@ export default fp(async (fastify) => {
     reply.code(upstream.status);
     return reply.send(Buffer.from(await upstream.arrayBuffer()));
   });
-});
+}

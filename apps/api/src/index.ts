@@ -19,7 +19,7 @@ server.register(fastifyEnv, {
 });
 
 server.register(fastifyIO, {
-  path: "/api/socket.io",
+  path: "/api/v1/socket.io",
   cors: { origin: "*" },
 });
 

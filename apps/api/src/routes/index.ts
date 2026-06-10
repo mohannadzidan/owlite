@@ -7,10 +7,11 @@ import observabilityPlugin from "./observability";
 import tmdbPlugin from "./tmdb";
 
 export async function registerRoutes(fastify: FastifyInstance) {
-  await fastify.register(profilesPlugin);
-  await fastify.register(subtitlesPlugin);
-  await fastify.register(mediaPlugin);
-  await fastify.register(mappingsPlugin);
-  await fastify.register(observabilityPlugin);
-  await fastify.register(tmdbPlugin);
+  const opts = { prefix: "/api/v1" };
+  await fastify.register(profilesPlugin, opts);
+  await fastify.register(subtitlesPlugin, opts);
+  await fastify.register(mediaPlugin, opts);
+  await fastify.register(mappingsPlugin, opts);
+  await fastify.register(observabilityPlugin, opts);
+  await fastify.register(tmdbPlugin, opts);
 }

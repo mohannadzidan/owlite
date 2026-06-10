@@ -1,6 +1,6 @@
-import fp from "fastify-plugin";
+import { FastifyInstance } from "fastify";
 
-export default fp(async (fastify) => {
+export default async function (fastify: FastifyInstance) {
   fastify.post("/client-errors", async (req, reply) => {
     fastify.log.error({ source: "client", payload: req.body }, "Client error reported");
     return reply.code(204).send();
@@ -10,4 +10,4 @@ export default fp(async (fastify) => {
     fastify.log.info({ source: "client", payload: req.body }, "Client log reported");
     return reply.code(204).send();
   });
-});
+}

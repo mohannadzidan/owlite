@@ -1,10 +1,10 @@
-import fp from "fastify-plugin";
+import { FastifyInstance } from "fastify";
 import fs from "fs";
 import "@fastify/multipart";
 import * as subtitleService from "../services/subtitle.service";
 import { SubtitlesUploadRequest } from "@owlite/types";
 
-export default fp(async (fastify) => {
+export default async function (fastify: FastifyInstance) {
   // GET /subtitles/list?tmdb_id=&season=&episode=
   fastify.get("/subtitles/list", async (req) => {
     const { tmdb_id, season, episode } = req.query as Record<string, string | undefined>;
@@ -94,4 +94,4 @@ export default fp(async (fastify) => {
     const result = await subtitleService.uploadSubtitle(req.body as SubtitlesUploadRequest);
     return reply.code(201).send(result);
   });
-});
+}
