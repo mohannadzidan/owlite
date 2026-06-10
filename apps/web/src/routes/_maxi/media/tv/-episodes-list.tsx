@@ -16,7 +16,6 @@ import { useEffect, useState } from "react";
 import Heading from "@/components/typography/heading";
 import { Spinner } from "@/components/ui/spinner";
 import { Link } from "@tanstack/react-router";
-;
 import { Progress } from "@/components/ui/progress";
 import { useContinueWatching } from "@/hooks/use-continue-watching";
 import { useProgress } from "@/hooks/use-progress";

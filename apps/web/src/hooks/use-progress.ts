@@ -1,4 +1,3 @@
-
 import type { ProgressRecord } from "@/lib/profile-types";
 import { getClientProfileId } from "@/lib/profile-id";
 import { profileService } from "@/services/profile.service";

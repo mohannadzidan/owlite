@@ -22,10 +22,14 @@ export default fp(async function errorHandlerPlugin(server: FastifyInstance) {
       });
     }
     const statusCode = error.statusCode ?? 500;
-    const code = statusCode === 400 ? "bad_request"
-      : statusCode === 401 ? "unauthorized"
-      : statusCode === 404 ? "not_found"
-      : "internal_server_error";
+    const code =
+      statusCode === 400
+        ? "bad_request"
+        : statusCode === 401
+          ? "unauthorized"
+          : statusCode === 404
+            ? "not_found"
+            : "internal_server_error";
     return reply.status(statusCode).send({ error: { code, message: error.message } });
   });
 });

@@ -12,10 +12,11 @@ Ensure `apps/web` is fully wired into the monorepo (workspace, turbo pipeline, s
 ## Step 1 — Verify pnpm workspace
 
 Check `pnpm-workspace.yaml` at the repo root includes `apps/*`:
+
 ```yaml
 packages:
-  - 'apps/*'
-  - 'packages/*'
+  - "apps/*"
+  - "packages/*"
 ```
 
 If `apps/web` is under `apps/`, it's already included. Confirm `@owlite/types` resolves by checking that `pnpm install` at the root picks up the workspace link.
@@ -25,6 +26,7 @@ If `apps/web` is under `apps/`, it's already included. Confirm `@owlite/types` r
 ## Step 2 — Verify @owlite/types dependency
 
 `apps/web/package.json` should have:
+
 ```json
 "dependencies": {
   "@owlite/types": "workspace:*",
@@ -47,6 +49,7 @@ If the root `package.json` scripts have `--filter` flags that name `owlite` spec
 ## Step 4 — Clean up scaffold artifacts
 
 Remove from `apps/web/`:
+
 - `public/logo192.png`, `public/logo512.png` — replace with owlite's favicon/assets
 - `public/manifest.json` — update with correct app name ("Owlite")
 - `README.md` — remove or update
@@ -59,6 +62,7 @@ Copy owlite's `public/` assets (favicon, any icons) to `apps/web/public/`.
 ## Step 5 — Update index.html title and meta
 
 In `apps/web/index.html`:
+
 - Update `<title>` from `"web"` to `"Owlite"`
 - Add `<meta name="theme-color" content="#000000">`
 - Ensure Google Fonts `<link>` tags are present (from Phase 1/4)
@@ -75,6 +79,7 @@ The scaffold has both `src/main.tsx` and `src/router.tsx` creating routers. Dele
 ## Step 7 — Add typecheck and fmt scripts
 
 Ensure `apps/web/package.json` has scripts consistent with the monorepo:
+
 ```json
 "scripts": {
   "dev": "vite dev --port 3000",

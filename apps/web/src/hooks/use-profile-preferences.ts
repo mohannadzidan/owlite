@@ -1,4 +1,3 @@
-
 import { DEFAULT_PREFERENCES } from "@/lib/profile-types";
 import type { PreferencesRecord } from "@/lib/profile-types";
 import { getClientProfileId } from "@/lib/profile-id";

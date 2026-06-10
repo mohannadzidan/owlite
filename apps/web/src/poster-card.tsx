@@ -1,4 +1,3 @@
-
 import { type ComponentProps } from "react";
 import { tmdbImageUrl } from "@/services/tmdb.service";
 import { cn } from "@/lib/utils";

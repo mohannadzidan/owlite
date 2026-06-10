@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState, type ComponentProps } from "react";
 import { Play, Pause, RotateCcw, RotateCw, SkipForward, Subtitles, Settings } from "lucide-react";
 import { usePlayerStore } from "./player-store";

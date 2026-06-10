@@ -96,7 +96,7 @@ export const shortcutsStore = create<ShortcutStore>((set, get) => ({
 
     const comboStr = comboUtils.serialise(combo);
     const seen = new Set<number>();
-    
+
     for (let i = state.activeScopes.length - 1; i >= 0; i--) {
       const scope = state.activeScopes[i];
       if (seen.has(scope)) continue;

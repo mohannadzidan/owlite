@@ -1,4 +1,3 @@
-
 import { getClientProfileId } from "@/lib/profile-id";
 import { profileService } from "@/services/profile.service";
 import useSWR from "swr";

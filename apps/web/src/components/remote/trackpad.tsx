@@ -1,4 +1,3 @@
-
 import { createTrackpadGesture, type TrackpadGesture } from "@/lib/trackpad-gesture";
 import { useRemoteControlStore } from "@/lib/remote-control-store";
 import { cn } from "@/lib/utils";

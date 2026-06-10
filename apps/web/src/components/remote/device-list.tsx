@@ -1,4 +1,3 @@
-
 import { connectionManager } from "@/lib/connection-manager";
 import { useRemoteControlStore } from "@/lib/remote-control-store";
 import { DeviceItem } from "@/components/remote/device-item";

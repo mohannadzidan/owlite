@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Globe, HardDrive, Minus, Plus, ChevronLeft } from "lucide-react";
 import useSWR from "swr";

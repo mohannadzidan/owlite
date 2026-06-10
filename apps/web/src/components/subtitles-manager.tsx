@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import useSWR from "swr";
 import { Accordion as AccordionPrimitive } from "radix-ui";

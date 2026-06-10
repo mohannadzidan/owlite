@@ -20,12 +20,13 @@ cp -r apps/owlite/lib/ apps/web/src/lib/
 ### Files to verify after copy
 
 **`src/lib/utils.ts`** — must export `cn()`:
+
 ```ts
-import { clsx, type ClassValue } from 'clsx'
-import { twMerge } from 'tailwind-merge'
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 ```
 
@@ -48,13 +49,15 @@ Copy the entire `apps/owlite/services/` directory → `apps/web/src/services/`.
 Find all occurrences of `process.env.NEXT_PUBLIC_API_URL` and replace with `import.meta.env.VITE_API_URL`.
 
 The `getApiBaseUrl()` function in api-client.ts currently has two branches:
+
 - `typeof window === "undefined"` (server) → `API_INTERNAL_URL`
 - browser → `NEXT_PUBLIC_API_URL`
 
 After migration the server branch is dead code. Simplify:
+
 ```ts
 function getApiBaseUrl(): string {
-  return import.meta.env.VITE_API_URL ?? ''
+  return import.meta.env.VITE_API_URL ?? "";
 }
 ```
 
@@ -80,14 +83,14 @@ This hook uses `useRouter` from `next/navigation`. Replace with TanStack Router:
 
 ```ts
 // Before (Next.js)
-import { useRouter } from 'next/navigation'
-const router = useRouter()
-router.replace('/profiles')
+import { useRouter } from "next/navigation";
+const router = useRouter();
+router.replace("/profiles");
 
 // After (TanStack Router)
-import { useNavigate } from '@tanstack/react-router'
-const navigate = useNavigate()
-navigate({ to: '/profiles', replace: true })
+import { useNavigate } from "@tanstack/react-router";
+const navigate = useNavigate();
+navigate({ to: "/profiles", replace: true });
 ```
 
 **Other hooks** — scan for any `next/navigation` imports and replace per the mapping table in `context.md`.
@@ -99,6 +102,7 @@ SWR hooks (`use-continue-watching.ts`, `use-profile-preferences.ts`, `use-progre
 ## Step 4 — Add .env files
 
 Copy and rename:
+
 - `apps/owlite/.env.development` → `apps/web/.env.development`
 - `apps/owlite/.env.production` → `apps/web/.env.production`
 - `apps/owlite/.env.example` → `apps/web/.env.example`
@@ -108,6 +112,7 @@ In each file, rename `NEXT_PUBLIC_API_URL` → `VITE_API_URL`.
 Remove `API_INTERNAL_URL` and `TMDB_API_KEY` — these are server-only vars not needed in the client app.
 
 Example `.env.development`:
+
 ```
 VITE_API_URL=http://192.168.1.100:8080
 ```

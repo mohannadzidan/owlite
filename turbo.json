@@ -3,20 +3,21 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**"]
+      "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**", "dist/**"]
     },
     "typecheck": {
       "dependsOn": ["^typecheck"]
     },
     "dev": {
+      "dependsOn": ["^build"],
       "persistent": true,
       "cache": false
     },
-    "lint": {
-      "dependsOn": ["^lint"]
-    },
-    "fmt": {
-      "cache": false
+    "tasks": {
+      "//#lint": {},
+      "//#lint:fix": {
+        "cache": false
+      }
     }
   }
 }

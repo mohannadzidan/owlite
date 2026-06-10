@@ -15,6 +15,7 @@ The scaffolded `apps/web` uses Tailwind v4 + `@tailwindcss/vite`. This must be r
 ### 1.1 — Replace Tailwind v4 with v3
 
 **package.json changes:**
+
 - Remove: `@tailwindcss/vite@^4`, `tailwindcss@^4`, `@tailwindcss/typography@^0.5`
 - Add: `tailwindcss@^3`, `autoprefixer`, `postcss`, `@tailwindcss/typography@^0.5` (v3-compatible)
 - Add browserslist: `["chrome 81"]`
@@ -22,18 +23,21 @@ The scaffolded `apps/web` uses Tailwind v4 + `@tailwindcss/vite`. This must be r
 **vite.config.ts:** remove `tailwindcss()` plugin import/call.
 
 **Add postcss.config.mjs** (copy pattern from owlite):
+
 ```js
-export default { plugins: { tailwindcss: {}, autoprefixer: {} } }
+export default { plugins: { tailwindcss: {}, autoprefixer: {} } };
 ```
 
 **Add tailwind.config.ts** — copy `apps/owlite/tailwind.config.ts` verbatim (content paths will need updating to `./src/**`).
 
 **src/styles.css** — replace `@import "tailwindcss"` with standard v3 directives:
+
 ```css
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 ```
+
 Plus copy global custom CSS from `apps/owlite/app/globals.css`.
 
 ### 1.2 — Add postcss-flex-gap-polyfill
@@ -44,16 +48,16 @@ Copy `apps/owlite/postcss-flex-gap-polyfill.cjs` to `apps/web/` and register in 
 
 Copy all relevant `dependencies` from `apps/owlite/package.json` to `apps/web/package.json`:
 
-| Group | Packages |
-|---|---|
-| Data fetching / state | `swr`, `zustand` |
-| UI library | all `@radix-ui/*` packages, `class-variance-authority`, `clsx`, `tailwind-merge`, `cmdk`, `vaul`, `input-otp`, `embla-carousel-react` |
-| Icons | `lucide-react` (already present) |
-| Media | `hls.js`, `react-player` |
-| Remote/WS | `socket.io-client` |
-| Utilities | `@ctrl/video-filename-parser`, `core-js`, `sonner`, `react-resizable-panels`, `recharts`, `date-fns`, `@tanstack/react-virtual` |
-| Notifications | `sonner` |
-| Fonts | none needed — inline via CSS |
+| Group                 | Packages                                                                                                                              |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Data fetching / state | `swr`, `zustand`                                                                                                                      |
+| UI library            | all `@radix-ui/*` packages, `class-variance-authority`, `clsx`, `tailwind-merge`, `cmdk`, `vaul`, `input-otp`, `embla-carousel-react` |
+| Icons                 | `lucide-react` (already present)                                                                                                      |
+| Media                 | `hls.js`, `react-player`                                                                                                              |
+| Remote/WS             | `socket.io-client`                                                                                                                    |
+| Utilities             | `@ctrl/video-filename-parser`, `core-js`, `sonner`, `react-resizable-panels`, `recharts`, `date-fns`, `@tanstack/react-virtual`       |
+| Notifications         | `sonner`                                                                                                                              |
+| Fonts                 | none needed — inline via CSS                                                                                                          |
 
 Also carry over `devDependencies`: `@types/node`.
 
@@ -83,6 +87,7 @@ One file needs updating: **`lib/utils.ts`** — verify `cn()` export is present 
 Copy all files from `apps/owlite/services/` → `apps/web/src/services/`.
 
 No changes needed — `api-client.ts` already uses `NEXT_PUBLIC_API_URL` env var and `tmdb.service.ts` uses the `/tmdb` proxy path. In Vite, env vars use `VITE_` prefix, so:
+
 - Rename all `process.env.NEXT_PUBLIC_API_URL` → `import.meta.env.VITE_API_URL`
 - Update `.env.development` / `.env.production` variable names accordingly
 
@@ -100,17 +105,18 @@ Copy all files from `apps/owlite/components/` → `apps/web/src/components/`.
 
 ### Next.js API replacements within components
 
-| next/\* import | Replacement |
-|---|---|
-| `import Image from "next/image"` | plain `<img>` tag |
-| `useRouter` from `next/navigation` | `useNavigate` from `@tanstack/react-router` |
-| `usePathname` from `next/navigation` | `useLocation` from `@tanstack/react-router` then `.pathname` |
-| `useParams` from `next/navigation` | `Route.useParams()` (per-route) or `useParams` from router |
-| `useSearchParams` from `next/navigation` | `Route.useSearch()` (per-route) |
-| `notFound()` from `next/navigation` | `throw new NotFoundError()` or redirect |
-| `Link` from `next/link` | `Link` from `@tanstack/react-router` |
+| next/\* import                           | Replacement                                                  |
+| ---------------------------------------- | ------------------------------------------------------------ |
+| `import Image from "next/image"`         | plain `<img>` tag                                            |
+| `useRouter` from `next/navigation`       | `useNavigate` from `@tanstack/react-router`                  |
+| `usePathname` from `next/navigation`     | `useLocation` from `@tanstack/react-router` then `.pathname` |
+| `useParams` from `next/navigation`       | `Route.useParams()` (per-route) or `useParams` from router   |
+| `useSearchParams` from `next/navigation` | `Route.useSearch()` (per-route)                              |
+| `notFound()` from `next/navigation`      | `throw new NotFoundError()` or redirect                      |
+| `Link` from `next/link`                  | `Link` from `@tanstack/react-router`                         |
 
 Files known to use next/ APIs (audit each during copy):
+
 - `components/profile-guard.tsx` — uses `useRouter`, `usePathname`
 - `components/navigation.tsx` — likely uses `Link`, `usePathname`
 - Any component using `next/image`
@@ -121,21 +127,21 @@ Files known to use next/ APIs (audit each during copy):
 
 Map Next.js App Router routes → TanStack Router file-based routes under `src/routes/`:
 
-| Next.js path | TanStack Router file |
-|---|---|
-| `app/layout.tsx` | `src/routes/__root.tsx` |
-| `app/page.tsx` | `src/routes/index.tsx` |
-| `app/profiles/page.tsx` | `src/routes/profiles/index.tsx` |
-| `app/(maxi)/layout.tsx` | `src/routes/_maxi.tsx` (pathless layout) |
-| `app/(maxi)/media/movie/[id]/page.tsx` | `src/routes/_maxi/media/movie/$id.tsx` |
-| `app/(maxi)/media/tv/[id]/page.tsx` | `src/routes/_maxi/media/tv/$id.tsx` |
+| Next.js path                                      | TanStack Router file                             |
+| ------------------------------------------------- | ------------------------------------------------ |
+| `app/layout.tsx`                                  | `src/routes/__root.tsx`                          |
+| `app/page.tsx`                                    | `src/routes/index.tsx`                           |
+| `app/profiles/page.tsx`                           | `src/routes/profiles/index.tsx`                  |
+| `app/(maxi)/layout.tsx`                           | `src/routes/_maxi.tsx` (pathless layout)         |
+| `app/(maxi)/media/movie/[id]/page.tsx`            | `src/routes/_maxi/media/movie/$id.tsx`           |
+| `app/(maxi)/media/tv/[id]/page.tsx`               | `src/routes/_maxi/media/tv/$id.tsx`              |
 | `app/(maxi)/media/[type]/[id]/subtitles/page.tsx` | `src/routes/_maxi/media/$type/$id/subtitles.tsx` |
-| `app/(maxi)/remote/page.tsx` | `src/routes/_maxi/remote/index.tsx` |
-| `app/(maxi)/remote/controls/page.tsx` | `src/routes/_maxi/remote/controls.tsx` |
-| `app/(maxi)/settings/page.tsx` | `src/routes/_maxi/settings.tsx` |
-| `app/player/[type]/[id]/page.tsx` | `src/routes/player/$type/$id.tsx` |
+| `app/(maxi)/remote/page.tsx`                      | `src/routes/_maxi/remote/index.tsx`              |
+| `app/(maxi)/remote/controls/page.tsx`             | `src/routes/_maxi/remote/controls.tsx`           |
+| `app/(maxi)/settings/page.tsx`                    | `src/routes/_maxi/settings.tsx`                  |
+| `app/player/[type]/[id]/page.tsx`                 | `src/routes/player/$type/$id.tsx`                |
 
-### __root.tsx content
+### \_\_root.tsx content
 
 Copy providers from `app/layout.tsx`: `RemoteControlProvider`, `ProfileGuard`, `Toaster`, `CursorOverlay`.
 
@@ -148,11 +154,12 @@ Font imports: replace `next/font/google` with a `<link>` tag in `index.html` for
 For each route, copy the component body from the Next.js page file. Remove the `"use client"` directive (not needed in Vite). Update `useSearchParams`, `useParams`, `notFound()` usages per the replacement table above.
 
 TanStack Router pattern for dynamic params:
+
 ```tsx
 // In route file
-export const Route = createFileRoute('/media/movie/$id')({ component: MoviePage })
+export const Route = createFileRoute("/media/movie/$id")({ component: MoviePage });
 function MoviePage() {
-  const { id } = Route.useParams()
+  const { id } = Route.useParams();
   // ...
 }
 ```
@@ -164,9 +171,11 @@ function MoviePage() {
 ### 5.1 — core-js entry point
 
 Create `src/polyfills.ts`:
+
 ```ts
-import 'core-js/stable'
+import "core-js/stable";
 ```
+
 Import it at the very top of `src/main.tsx` (before any other import).
 
 ### 5.2 — WeakRef polyfill
@@ -176,27 +185,31 @@ Copy the WeakRef polyfill snippet from `apps/owlite/instrumentation-client.ts` i
 ### 5.3 — Flex-gap detection script
 
 Add inline to `index.html` `<head>` (extracted from `app/layout.tsx`):
+
 ```html
 <script>
   // detect flex gap support, add .no-flex-gap class if not supported
-  var div = document.createElement('div');
-  div.style.display = 'flex';
-  div.style.flexDirection = 'column';
-  div.style.rowGap = '1px';
-  div.appendChild(document.createElement('div'));
-  div.appendChild(document.createElement('div'));
+  var div = document.createElement("div");
+  div.style.display = "flex";
+  div.style.flexDirection = "column";
+  div.style.rowGap = "1px";
+  div.appendChild(document.createElement("div"));
+  div.appendChild(document.createElement("div"));
   document.body.appendChild(div);
   var supported = div.scrollHeight === 1;
   document.body.removeChild(div);
-  if (!supported) document.documentElement.classList.add('no-flex-gap');
+  if (!supported) document.documentElement.classList.add("no-flex-gap");
 </script>
 ```
 
 ### 5.4 — Vite build target
 
 In `vite.config.ts`, add:
+
 ```ts
-build: { target: 'chrome81' }
+build: {
+  target: "chrome81";
+}
 ```
 
 ---
@@ -204,6 +217,7 @@ build: { target: 'chrome81' }
 ## Phase 6 — Environment Variables & .env Files
 
 Copy `.env.development` and `.env.production` from `apps/owlite/` to `apps/web/`, renaming variables:
+
 - `NEXT_PUBLIC_API_URL` → `VITE_API_URL`
 - `TMDB_API_KEY` is server-only (fastify) — not needed in client app
 
@@ -227,22 +241,22 @@ Add `@owlite/types` as a dependency to `apps/web/package.json` (workspace protoc
 
 ## Critical Files to Modify
 
-| File | Change |
-|---|---|
-| `apps/web/package.json` | Tailwind v3, all deps, browserslist |
-| `apps/web/vite.config.ts` | remove tailwindcss() plugin, add build.target |
-| `apps/web/index.html` | Google Fonts link, flex-gap script |
-| `apps/web/src/styles.css` | v3 directives + globals from owlite |
-| `apps/web/tailwind.config.ts` | copy from owlite, adjust content paths |
-| `apps/web/postcss.config.mjs` | new file, v3 + flex-gap-polyfill |
-| `apps/web/postcss-flex-gap-polyfill.cjs` | copy from owlite |
-| `apps/web/src/main.tsx` | add polyfill import, observability |
-| `apps/web/src/routes/__root.tsx` | providers from owlite layout.tsx |
-| `apps/web/src/routes/` | all route files (new) |
-| `apps/web/src/components/` | copy from owlite/components/ |
-| `apps/web/src/lib/` | copy from owlite/lib/ |
-| `apps/web/src/services/` | copy from owlite/services/ (env var rename) |
-| `apps/web/src/hooks/` | copy from owlite/hooks/ (router API updates) |
+| File                                     | Change                                        |
+| ---------------------------------------- | --------------------------------------------- |
+| `apps/web/package.json`                  | Tailwind v3, all deps, browserslist           |
+| `apps/web/vite.config.ts`                | remove tailwindcss() plugin, add build.target |
+| `apps/web/index.html`                    | Google Fonts link, flex-gap script            |
+| `apps/web/src/styles.css`                | v3 directives + globals from owlite           |
+| `apps/web/tailwind.config.ts`            | copy from owlite, adjust content paths        |
+| `apps/web/postcss.config.mjs`            | new file, v3 + flex-gap-polyfill              |
+| `apps/web/postcss-flex-gap-polyfill.cjs` | copy from owlite                              |
+| `apps/web/src/main.tsx`                  | add polyfill import, observability            |
+| `apps/web/src/routes/__root.tsx`         | providers from owlite layout.tsx              |
+| `apps/web/src/routes/`                   | all route files (new)                         |
+| `apps/web/src/components/`               | copy from owlite/components/                  |
+| `apps/web/src/lib/`                      | copy from owlite/lib/                         |
+| `apps/web/src/services/`                 | copy from owlite/services/ (env var rename)   |
+| `apps/web/src/hooks/`                    | copy from owlite/hooks/ (router API updates)  |
 
 ---
 

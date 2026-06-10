@@ -2,6 +2,7 @@
 
 > **STRICT RULE — ALWAYS ENFORCE:**
 > This file is the **shared knowledge base** for this migration. Every phase executor MUST read this file before starting their phase. After each successful phase completion, this file MUST be updated to reflect:
+>
 > - New information discovered during implementation
 > - Corrected assumptions or outdated information
 > - New patterns established that future phases should follow
@@ -35,6 +36,7 @@ A Next.js 16 (App Router) media streaming frontend for Android TV (Chrome 81). N
 ### Migration status
 
 All Next.js server-side concerns have been **fully stripped** (phases 1–4 of the previous migration plan):
+
 - No Server Components fetching data
 - No Route Handlers
 - No middleware proxy
@@ -156,6 +158,7 @@ apps/owlite/
 **TMDB proxy:** client-side `tmdb.service.ts` rewrites TMDB URLs to `{API_URL}/tmdb/{path}` — fastify handles the actual proxy to `api.themoviedb.org`. No TMDB key in frontend.
 
 **Polyfills:**
+
 1. `core-js/stable` — ES2017+ for Chrome 81
 2. WeakRef shim — inline in instrumentation-client.ts
 3. `postcss-flex-gap-polyfill.cjs` — converts `gap` to `margin` fallbacks for Chrome 81 (which lacks flex gap, added in Chrome 84)
@@ -197,38 +200,39 @@ apps/web/
 
 ## Next.js API → TanStack Router Equivalents
 
-| Next.js | TanStack Router |
-|---|---|
-| `import Link from "next/link"` | `import { Link } from "@tanstack/react-router"` |
-| `useRouter()` from `next/navigation` | `useNavigate()` from `@tanstack/react-router` |
-| `router.push("/path")` | `navigate({ to: "/path" })` |
-| `router.replace("/path")` | `navigate({ to: "/path", replace: true })` |
-| `usePathname()` | `useLocation()` then `.pathname` |
-| `useParams()` | `Route.useParams()` (per route file) |
-| `useSearchParams()` | `Route.useSearch()` (per route file) |
-| `notFound()` | `throw new NotFoundError()` or `navigate({ to: "/404" })` |
-| `<Image>` from `next/image` | plain `<img>` |
-| `next/font/google` | `<link>` tag in index.html |
+| Next.js                              | TanStack Router                                           |
+| ------------------------------------ | --------------------------------------------------------- |
+| `import Link from "next/link"`       | `import { Link } from "@tanstack/react-router"`           |
+| `useRouter()` from `next/navigation` | `useNavigate()` from `@tanstack/react-router`             |
+| `router.push("/path")`               | `navigate({ to: "/path" })`                               |
+| `router.replace("/path")`            | `navigate({ to: "/path", replace: true })`                |
+| `usePathname()`                      | `useLocation()` then `.pathname`                          |
+| `useParams()`                        | `Route.useParams()` (per route file)                      |
+| `useSearchParams()`                  | `Route.useSearch()` (per route file)                      |
+| `notFound()`                         | `throw new NotFoundError()` or `navigate({ to: "/404" })` |
+| `<Image>` from `next/image`          | plain `<img>`                                             |
+| `next/font/google`                   | `<link>` tag in index.html                                |
 
 ---
 
 ## Route Mapping: Next.js App Router → TanStack Router
 
-| Next.js file | TanStack Router file |
-|---|---|
-| `app/layout.tsx` | `src/routes/__root.tsx` |
-| `app/page.tsx` | `src/routes/index.tsx` |
-| `app/profiles/page.tsx` | `src/routes/profiles/index.tsx` |
-| `app/(maxi)/layout.tsx` | `src/routes/_maxi.tsx` (pathless layout route) |
-| `app/(maxi)/media/movie/[id]/page.tsx` | `src/routes/_maxi/media/movie/$id.tsx` |
-| `app/(maxi)/media/tv/[id]/page.tsx` | `src/routes/_maxi/media/tv/$id.tsx` |
+| Next.js file                                      | TanStack Router file                             |
+| ------------------------------------------------- | ------------------------------------------------ |
+| `app/layout.tsx`                                  | `src/routes/__root.tsx`                          |
+| `app/page.tsx`                                    | `src/routes/index.tsx`                           |
+| `app/profiles/page.tsx`                           | `src/routes/profiles/index.tsx`                  |
+| `app/(maxi)/layout.tsx`                           | `src/routes/_maxi.tsx` (pathless layout route)   |
+| `app/(maxi)/media/movie/[id]/page.tsx`            | `src/routes/_maxi/media/movie/$id.tsx`           |
+| `app/(maxi)/media/tv/[id]/page.tsx`               | `src/routes/_maxi/media/tv/$id.tsx`              |
 | `app/(maxi)/media/[type]/[id]/subtitles/page.tsx` | `src/routes/_maxi/media/$type/$id/subtitles.tsx` |
-| `app/(maxi)/remote/page.tsx` | `src/routes/_maxi/remote/index.tsx` |
-| `app/(maxi)/remote/controls/page.tsx` | `src/routes/_maxi/remote/controls.tsx` |
-| `app/(maxi)/settings/page.tsx` | `src/routes/_maxi/settings.tsx` |
-| `app/player/[type]/[id]/page.tsx` | `src/routes/player/$type/$id.tsx` |
+| `app/(maxi)/remote/page.tsx`                      | `src/routes/_maxi/remote/index.tsx`              |
+| `app/(maxi)/remote/controls/page.tsx`             | `src/routes/_maxi/remote/controls.tsx`           |
+| `app/(maxi)/settings/page.tsx`                    | `src/routes/_maxi/settings.tsx`                  |
+| `app/player/[type]/[id]/page.tsx`                 | `src/routes/player/$type/$id.tsx`                |
 
 **TanStack Router conventions:**
+
 - Files named `_name.tsx` (underscore prefix) = **pathless layout route** (like Next.js route groups)
 - Nested under `_maxi/` directory = layout applied, no URL segment added
 - `$param` = dynamic segment (like `[param]` in Next.js)
@@ -240,23 +244,23 @@ apps/web/
 
 Fastify server. Relevant endpoints for the frontend:
 
-| Endpoint | Purpose |
-|---|---|
-| `GET /profiles` | List profiles |
-| `POST /profiles` | Create profile |
-| `GET /profiles/:id/preferences` | Get preferences |
-| `PATCH /profiles/:id/preferences` | Update preferences |
-| `GET /profiles/:id/progress/:mediaId` | Get watch progress |
-| `PATCH /profiles/:id/progress/:mediaId` | Update watch progress |
-| `GET /profiles/:id/continue-watching` | Continue watching list |
-| `GET /sources?type=&id=` | Get media sources |
-| `GET /play?type=&id=&source=` | Get stream URL |
-| `GET /hls-proxy` | HLS manifest proxy |
-| `GET /hls-segment` | HLS segment proxy |
-| `GET /tmdb/*` | TMDB API proxy (added in migration phase 1) |
-| `GET/POST /subtitles/*` | Subtitle CRUD |
-| `POST /client-errors` | Client error reporting |
-| `POST /client-logs` | Client log reporting |
+| Endpoint                                | Purpose                                     |
+| --------------------------------------- | ------------------------------------------- |
+| `GET /profiles`                         | List profiles                               |
+| `POST /profiles`                        | Create profile                              |
+| `GET /profiles/:id/preferences`         | Get preferences                             |
+| `PATCH /profiles/:id/preferences`       | Update preferences                          |
+| `GET /profiles/:id/progress/:mediaId`   | Get watch progress                          |
+| `PATCH /profiles/:id/progress/:mediaId` | Update watch progress                       |
+| `GET /profiles/:id/continue-watching`   | Continue watching list                      |
+| `GET /sources?type=&id=`                | Get media sources                           |
+| `GET /play?type=&id=&source=`           | Get stream URL                              |
+| `GET /hls-proxy`                        | HLS manifest proxy                          |
+| `GET /hls-segment`                      | HLS segment proxy                           |
+| `GET /tmdb/*`                           | TMDB API proxy (added in migration phase 1) |
+| `GET/POST /subtitles/*`                 | Subtitle CRUD                               |
+| `POST /client-errors`                   | Client error reporting                      |
+| `POST /client-logs`                     | Client log reporting                        |
 
 ---
 
@@ -265,23 +269,24 @@ Fastify server. Relevant endpoints for the frontend:
 ### Installed dependencies (as of Phase 1)
 
 All UI/runtime deps are in `apps/web/package.json`. Key ones added:
+
 - `radix-ui` (unified package, NOT individual `@radix-ui/*` — matches owlite)
 - `swr`, `zustand`, `hls.js`, `socket.io-client`, `core-js`, `sonner`, `recharts`
 - `clsx`, `tailwind-merge`, `class-variance-authority`, `cmdk`, `vaul`, `input-otp`, `embla-carousel-react`
 - `react-player`, `react-resizable-panels`, `date-fns`, `@ctrl/video-filename-parser`
-- `@owlite/types` (workspace:*)
+- `@owlite/types` (workspace:\*)
 - devDeps: `tailwindcss@3.3.5`, `autoprefixer`, `postcss`, `tailwindcss-animate`
 
 ### Toolchain files present
 
-| File | Purpose |
-|---|---|
-| `tailwind.config.ts` | Identical to owlite's — theme tokens, data-* variants, no-scrollbar util |
-| `postcss.config.mjs` | Tailwind v3 + autoprefixer + flex-gap polyfill |
-| `postcss-flex-gap-polyfill.cjs` | Flex gap fallback for Chrome 81 |
-| `src/styles.css` | Tailwind v3 directives + all CSS variables from globals.css |
-| `components.json` | shadcn/ui config (rsc: false, css: src/styles.css) |
-| `index.html` | Google Fonts (Lato/Patrick Hand/Geist Mono) + flex-gap detection script |
+| File                            | Purpose                                                                   |
+| ------------------------------- | ------------------------------------------------------------------------- |
+| `tailwind.config.ts`            | Identical to owlite's — theme tokens, data-\* variants, no-scrollbar util |
+| `postcss.config.mjs`            | Tailwind v3 + autoprefixer + flex-gap polyfill                            |
+| `postcss-flex-gap-polyfill.cjs` | Flex gap fallback for Chrome 81                                           |
+| `src/styles.css`                | Tailwind v3 directives + all CSS variables from globals.css               |
+| `components.json`               | shadcn/ui config (rsc: false, css: src/styles.css)                        |
+| `index.html`                    | Google Fonts (Lato/Patrick Hand/Geist Mono) + flex-gap detection script   |
 
 ### components/ Copy (Phase 3) — Notes
 
@@ -296,6 +301,7 @@ All UI/runtime deps are in `apps/web/package.json`. Key ones added:
 ### Babel note (DO NOT create .babelrc for apps/web)
 
 `apps/owlite` has a `.babelrc` with `@babel/preset-env` + `useBuiltIns: "usage"` + `corejs: 3` for automatic polyfill injection. **Vite does not use this** — it uses esbuild for transpilation. For apps/web:
+
 - `build.target: 'chrome81'` in `vite.config.ts` handles syntax targeting via esbuild
 - `core-js/stable` must be **explicitly imported** at the top of `src/main.tsx` (Phase 5) — no automatic injection
 
@@ -309,13 +315,16 @@ All UI/runtime deps are in `apps/web/package.json`. Key ones added:
 
 ## Phase Completion Log
 
-*(Update this section after each phase is implemented and verified)*
+_(Update this section after each phase is implemented and verified)_
 
 ### Infrastructure (Phase 1) — COMPLETE
+
 All toolchain files in place, all deps installed, zero TS errors.
 
 ### lib/ + services/ + hooks/ Copy (Phase 2) — COMPLETE
+
 Copied verbatim via `cp -r`. Changes made:
+
 - `services/api-client.ts`: removed server branch, simplified `getApiBaseUrl()` to `import.meta.env.VITE_API_URL`
 - `services/tmdb.service.ts`: removed server-side direct-call branch, replaced `process.env.NEXT_PUBLIC_API_URL` → `import.meta.env.VITE_API_URL`, removed `TMDB_API_KEY` (all calls proxied through fastify `/tmdb/*`)
 - `lib/connection-manager.ts`: replaced `process.env.NEXT_PUBLIC_API_URL` → `import.meta.env.VITE_API_URL`
@@ -325,9 +334,13 @@ Copied verbatim via `cp -r`. Changes made:
 - Zero TS errors after changes
 
 ### lib/ + services/ + hooks/ Copy (Phase 2) — COMPLETE
+
 ### components/ Copy (Phase 3) — COMPLETE
+
 ### Route Setup (Phase 4) — COMPLETE
+
 All route files created under `apps/web/src/routes/`. Key decisions:
+
 - `__root.tsx`: providers (RemoteControlProvider, ProfileGuard, Toaster, CursorOverlay), imports styles.css
 - `index.tsx`: renders HomeClient; `home-client.tsx` uses `useLocation().href` to extract search string (TanStack Router's `location.search` is typed as union of all search schemas, not a plain string)
 - `profiles/index.tsx`: self-contained, uses `useNavigate` for redirect after profile select
@@ -343,13 +356,18 @@ All route files created under `apps/web/src/routes/`. Key decisions:
 - Added deps: `ts-pattern`, `dayjs`, `nanoid`
 
 ### Polyfills (Phase 5) — COMPLETE
+
 - `src/polyfills.ts`: `import 'core-js/stable'` + WeakRef polyfill (copied verbatim from `instrumentation-client.ts`)
 - `src/main.tsx`: `import './polyfills'` as first import
 - `build.target: 'chrome81'` and `browserslist: ['chrome 81']` already in place from Phase 1
 - `postcss-flex-gap-polyfill.cjs` and `postcss.config.mjs` wired up from Phase 1
+
 ### Environment Variables (Phase 6) — COMPLETE
+
 - `.env.development`, `.env.production`, `.env.example` already created in Phase 2 with `VITE_API_URL`
 - Zero `NEXT_PUBLIC_` or `process.env` references in `apps/web/src/` (all handled in Phase 2)
 - Created `src/env.d.ts` with `ImportMetaEnv` interface for typed `import.meta.env.VITE_API_URL`
+
 ### Observability (Phase 7) — NOT STARTED
+
 ### Workspace Integration (Phase 8) — NOT STARTED

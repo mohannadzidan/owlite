@@ -3,10 +3,7 @@ import plugin from "tailwindcss/plugin";
 import animate from "tailwindcss-animate";
 
 const config: Config = {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
       colors: {

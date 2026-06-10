@@ -1,15 +1,18 @@
 {
   "name": "owlite-monorepo",
   "private": true,
-  "packageManager": "pnpm@10.25.0",
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
     "typecheck": "turbo typecheck",
-    "lint": "turbo lint",
-    "fmt": "turbo fmt"
+    "lint": "oxlint .",
+    "fmt": "oxfmt",
+    "lint:fix": "oxlint --fix ."
   },
   "devDependencies": {
+    "oxfmt": "^0.54.0",
+    "oxlint": "^1.69.0",
     "turbo": "^2.9.16"
-  }
+  },
+  "packageManager": "pnpm@10.25.0"
 }

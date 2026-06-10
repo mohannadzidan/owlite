@@ -5,7 +5,9 @@ export default async function (fastify: FastifyInstance) {
   fastify.get("/mappings", async () => mappingService.listMappings());
 
   fastify.post("/mappings", async (req, reply) => {
-    const mapping = mappingService.createMapping(req.body as Parameters<typeof mappingService.createMapping>[0]);
+    const mapping = mappingService.createMapping(
+      req.body as Parameters<typeof mappingService.createMapping>[0],
+    );
     return reply.code(201).send(mapping);
   });
 

@@ -29,19 +29,19 @@ The fastify backend has `/client-errors` and `/client-logs` endpoints to receive
 Create `apps/web/src/observability.ts` by extracting the error/log reporting logic from `apps/owlite/instrumentation-client.ts`:
 
 ```ts
-import { getClientProfileId } from '@/lib/profile-id'
+import { getClientProfileId } from "@/lib/profile-id";
 
-const API_URL = import.meta.env.VITE_API_URL
+const API_URL = import.meta.env.VITE_API_URL;
 
 function sendBeacon(endpoint: string, payload: unknown) {
-  const url = `${API_URL}${endpoint}`
-  navigator.sendBeacon(url, JSON.stringify(payload))
+  const url = `${API_URL}${endpoint}`;
+  navigator.sendBeacon(url, JSON.stringify(payload));
 }
 
 export function initObservability() {
   // Unhandled errors
   window.onerror = (message, source, lineno, colno, error) => {
-    sendBeacon('/client-errors', {
+    sendBeacon("/client-errors", {
       profileId: getClientProfileId(),
       message,
       source,
@@ -49,30 +49,30 @@ export function initObservability() {
       colno,
       stack: error?.stack,
       timestamp: new Date().toISOString(),
-    })
-  }
+    });
+  };
 
   // Unhandled promise rejections
   window.onunhandledrejection = (event) => {
-    sendBeacon('/client-errors', {
+    sendBeacon("/client-errors", {
       profileId: getClientProfileId(),
       message: String(event.reason),
       stack: event.reason?.stack,
       timestamp: new Date().toISOString(),
-    })
-  }
+    });
+  };
 
   // Console errors
-  const originalConsoleError = console.error.bind(console)
+  const originalConsoleError = console.error.bind(console);
   console.error = (...args) => {
-    originalConsoleError(...args)
-    sendBeacon('/client-logs', {
+    originalConsoleError(...args);
+    sendBeacon("/client-logs", {
       profileId: getClientProfileId(),
-      level: 'error',
-      message: args.map(String).join(' '),
+      level: "error",
+      message: args.map(String).join(" "),
       timestamp: new Date().toISOString(),
-    })
-  }
+    });
+  };
 }
 ```
 
@@ -85,10 +85,10 @@ export function initObservability() {
 In `apps/web/src/main.tsx`, call `initObservability()` early (after polyfills, before render):
 
 ```ts
-import './polyfills'
-import { initObservability } from './observability'
+import "./polyfills";
+import { initObservability } from "./observability";
 
-initObservability()
+initObservability();
 
 // ... rest of main.tsx (createRouter, ReactDOM.render, etc.)
 ```

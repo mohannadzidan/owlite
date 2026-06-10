@@ -1,4 +1,3 @@
-
 import { io, type Socket } from "socket.io-client";
 import type { ClientToServerEvents, ServerToClientEvents } from "@owlite/types";
 import { getDeviceId, getDeviceName } from "@/lib/device-identity";

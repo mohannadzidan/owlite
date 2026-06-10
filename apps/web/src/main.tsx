@@ -5,16 +5,13 @@ import { routeTree } from "./routeTree.gen";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { installShortcuts } from "./lib/shortcuts";
 
-
 installShortcuts();
-
 
 const router = createRouter({
   routeTree,
   defaultPreload: "intent",
   scrollRestoration: true,
 });
-
 
 declare module "@tanstack/react-router" {
   interface Register {

@@ -19,22 +19,24 @@ Next.js used `NEXT_PUBLIC_` prefix for the same purpose. All references must be 
 
 ## Variable Mapping
 
-| owlite variable | web variable | Where used |
-|---|---|---|
-| `NEXT_PUBLIC_API_URL` | `VITE_API_URL` | `services/api-client.ts`, `services/tmdb.service.ts` |
-| `API_INTERNAL_URL` | *(remove — server-only, not needed)* | Was used for SSR, now dead |
-| `TMDB_API_KEY` | *(remove — server-only, fastify handles it)* | Was used by Next.js middleware proxy |
+| owlite variable       | web variable                                 | Where used                                           |
+| --------------------- | -------------------------------------------- | ---------------------------------------------------- |
+| `NEXT_PUBLIC_API_URL` | `VITE_API_URL`                               | `services/api-client.ts`, `services/tmdb.service.ts` |
+| `API_INTERNAL_URL`    | _(remove — server-only, not needed)_         | Was used for SSR, now dead                           |
+| `TMDB_API_KEY`        | _(remove — server-only, fastify handles it)_ | Was used by Next.js middleware proxy                 |
 
 ---
 
 ## Step 1 — Create .env files
 
 Create `apps/web/.env.development`:
+
 ```
 VITE_API_URL=http://192.168.1.100:8080
 ```
 
 Create `apps/web/.env.production`:
+
 ```
 VITE_API_URL=/
 ```
@@ -42,6 +44,7 @@ VITE_API_URL=/
 The production value `/` means the API is served from the same origin as the frontend (typical setup where fastify serves the built static files).
 
 Create `apps/web/.env.example`:
+
 ```
 VITE_API_URL=http://localhost:8080
 ```
@@ -62,6 +65,7 @@ grep -r "process.env" apps/web/src/
 Every hit must be replaced with `import.meta.env.VITE_*`.
 
 Known files that reference the API URL (from Phase 2):
+
 - `src/services/api-client.ts` — `getApiBaseUrl()` function
 - `src/services/tmdb.service.ts` — custom fetch that builds proxy URL
 
@@ -72,15 +76,16 @@ Known files that reference the API URL (from Phase 2):
 Add a type declaration file so TypeScript knows about the env vars.
 
 Create `apps/web/src/env.d.ts`:
+
 ```ts
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_API_URL: string
+  readonly VITE_API_URL: string;
 }
 
 interface ImportMeta {
-  readonly env: ImportMetaEnv
+  readonly env: ImportMetaEnv;
 }
 ```
 

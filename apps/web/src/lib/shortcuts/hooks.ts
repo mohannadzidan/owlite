@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from "react";
 import { useShortcutStore } from "./store";
 import { comboUtils } from "./combo-utils";

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 
 function is169(w: number, h: number) {

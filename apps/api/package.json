@@ -8,6 +8,7 @@
   "main": "index",
   "scripts": {
     "dev": "cross-env NODE_ENV=development nodemon",
+    "start": "cross-env NODE_ENV=production node ./dist/src/index.js",
     "build": "cross-env NODE_ENV=production swc src -d dist --source-maps --copy-files",
     "typecheck": "tsc --noEmit"
   },

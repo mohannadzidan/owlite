@@ -14,12 +14,14 @@ Replace the scaffolded Tailwind v4 setup with Tailwind v3, add all missing depen
 ### package.json
 
 Remove:
+
 ```
 "@tailwindcss/vite": "^4.x"
 "tailwindcss": "^4.x"
 ```
 
 Add:
+
 ```json
 "tailwindcss": "^3.4.0",
 "autoprefixer": "^10.4.0",
@@ -29,6 +31,7 @@ Add:
 Keep `@tailwindcss/typography` but ensure it's `^0.5.x` (compatible with Tailwind v3).
 
 Also add to `package.json`:
+
 ```json
 "browserslist": ["chrome 81"]
 ```
@@ -38,22 +41,18 @@ Also add to `package.json`:
 Remove the `tailwindcss()` import and plugin call. File should look like:
 
 ```ts
-import { defineConfig } from 'vite'
-import { devtools } from '@tanstack/devtools-vite'
-import { tanstackRouter } from '@tanstack/router-plugin/vite'
-import viteReact from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import { devtools } from "@tanstack/devtools-vite";
+import { tanstackRouter } from "@tanstack/router-plugin/vite";
+import viteReact from "@vitejs/plugin-react";
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
-  build: { target: 'chrome81' },
-  plugins: [
-    devtools(),
-    tanstackRouter({ target: 'react', autoCodeSplitting: true }),
-    viteReact(),
-  ],
-})
+  build: { target: "chrome81" },
+  plugins: [devtools(), tanstackRouter({ target: "react", autoCodeSplitting: true }), viteReact()],
+});
 
-export default config
+export default config;
 ```
 
 Note: `build.target: 'chrome81'` ensures Vite's esbuild doesn't transform away things that Chrome 81 supports natively.
@@ -65,7 +64,7 @@ Note: `build.target: 'chrome81'` ensures Vite's esbuild doesn't transform away t
 Create `apps/web/postcss.config.mjs`:
 
 ```js
-import flexGapPolyfill from './postcss-flex-gap-polyfill.cjs'
+import flexGapPolyfill from "./postcss-flex-gap-polyfill.cjs";
 
 export default {
   plugins: {
@@ -73,7 +72,7 @@ export default {
     autoprefixer: {},
     // flex-gap polyfill for Chrome 81 (no native flex gap until Chrome 84)
   },
-}
+};
 ```
 
 Actually, PostCSS config object-style doesn't support importing CJS plugins directly by reference. Follow the exact same pattern as `apps/owlite/postcss.config.mjs` — open that file and replicate it exactly.
@@ -91,6 +90,7 @@ Copy `apps/owlite/postcss-flex-gap-polyfill.cjs` → `apps/web/postcss-flex-gap-
 Copy `apps/owlite/tailwind.config.ts` → `apps/web/tailwind.config.ts`.
 
 Update the `content` array from owlite paths to:
+
 ```ts
 content: [
   './index.html',
@@ -140,6 +140,7 @@ pnpm add @owlite/types@workspace:*
 ```
 
 All Radix UI packages (copy the full list from `apps/owlite/package.json` — every `@radix-ui/*` entry):
+
 ```
 pnpm add @radix-ui/react-accordion @radix-ui/react-alert-dialog @radix-ui/react-aspect-ratio \
   @radix-ui/react-avatar @radix-ui/react-checkbox @radix-ui/react-collapsible \
@@ -169,17 +170,17 @@ In `index.html`, add this inline script inside `<head>` **before** any styleshee
 
 ```html
 <script>
-  (function() {
-    var div = document.createElement('div');
-    div.style.display = 'flex';
-    div.style.flexDirection = 'column';
-    div.style.rowGap = '1px';
-    div.appendChild(document.createElement('div'));
-    div.appendChild(document.createElement('div'));
+  (function () {
+    var div = document.createElement("div");
+    div.style.display = "flex";
+    div.style.flexDirection = "column";
+    div.style.rowGap = "1px";
+    div.appendChild(document.createElement("div"));
+    div.appendChild(document.createElement("div"));
     document.body.appendChild(div);
     var supported = div.scrollHeight === 1;
     document.body.removeChild(div);
-    if (!supported) document.documentElement.classList.add('no-flex-gap');
+    if (!supported) document.documentElement.classList.add("no-flex-gap");
   })();
 </script>
 ```
@@ -193,6 +194,7 @@ Also add Google Fonts link tags in `<head>` (Lato, Patrick Hand, Geist Mono) —
 Copy `apps/owlite/components.json` → `apps/web/components.json`.
 
 Update paths within it:
+
 - `"tailwind.css"` → `"src/styles.css"` (or wherever styles.css lives)
 - `"aliases.components"` → `"@/components"` (already matches since `@/*` = `src/*`)
 

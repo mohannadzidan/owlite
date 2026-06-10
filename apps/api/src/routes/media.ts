@@ -71,9 +71,7 @@ export default async function (fastify: FastifyInstance) {
       if (err.statusCode === 404)
         return reply.code(404).send({ error: { code: "not_found", message: err.message } });
       if (err.statusCode === 422)
-        return reply
-          .code(422)
-          .send({ error: { code: "could_not_resolve", message: err.message } });
+        return reply.code(422).send({ error: { code: "could_not_resolve", message: err.message } });
       throw err;
     }
   });
@@ -129,7 +127,6 @@ export default async function (fastify: FastifyInstance) {
     if (!data?.u) return reply.code(400).send("Bad request");
 
     const { u: manifestUrl, r: referer } = data;
-
 
     let upstream: Response;
     try {

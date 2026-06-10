@@ -10,7 +10,10 @@ const SESSION_TTL_MS = 10 * 60 * 1000;
 const deviceSockets = new Map<string, string>();
 const deviceNames = new Map<string, string>();
 const devicePairings = new Map<string, Map<string, string>>();
-const sessions = new Map<string, { acceptorDeviceId: string; acceptorName: string; expiresAt: number }>();
+const sessions = new Map<
+  string,
+  { acceptorDeviceId: string; acceptorName: string; expiresAt: number }
+>();
 
 export default fp(async function socketIoPlugin(server: FastifyInstance) {
   server.io.on("connection", (socket: Socket<ClientToServerEvents, ServerToClientEvents>) => {

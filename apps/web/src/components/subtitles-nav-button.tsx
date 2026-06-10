@@ -11,10 +11,7 @@ interface SubtitlesNavButtonProps {
 export function SubtitlesNavButton({ type, id }: SubtitlesNavButtonProps) {
   useNavigationBarRightItem(
     <Button key="subtitles-nav" variant="ghost" size="icon" asChild>
-      <Link
-        to={"/media/$type/$id/subtitles"}
-        params={{ type, id: id.toString() }}
-      >
+      <Link to={"/media/$type/$id/subtitles"} params={{ type, id: id.toString() }}>
         <Languages className="size-5" />
       </Link>
     </Button>,

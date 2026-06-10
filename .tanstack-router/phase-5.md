@@ -12,6 +12,7 @@ Ensure `apps/web` has the same polyfill coverage as `apps/owlite` for Chrome 81 
 ## Why Chrome 81?
 
 The app targets Android TV devices. The browser on those devices is Chrome 81 (circa 2020). Chrome 81 is missing:
+
 - Many ES2020+ built-ins (covered by core-js)
 - `WeakRef` and `FinalizationRegistry` (custom polyfill needed)
 - CSS `gap` property in flexbox contexts (added in Chrome 84) — covered by PostCSS plugin
@@ -24,26 +25,30 @@ Create `apps/web/src/polyfills.ts`:
 
 ```ts
 // ES2017+ built-ins for Chrome 81
-import 'core-js/stable'
+import "core-js/stable";
 
 // WeakRef polyfill for Chrome 81 (WeakRef shipped in Chrome 84)
-if (typeof WeakRef === 'undefined') {
+if (typeof WeakRef === "undefined") {
   // @ts-expect-error polyfill
   globalThis.WeakRef = class WeakRef<T extends object> {
-    private _target: T
-    constructor(target: T) { this._target = target }
-    deref(): T { return this._target }
-  }
+    private _target: T;
+    constructor(target: T) {
+      this._target = target;
+    }
+    deref(): T {
+      return this._target;
+    }
+  };
 }
 
 // FinalizationRegistry stub (no-op — Chrome 84+)
-if (typeof FinalizationRegistry === 'undefined') {
+if (typeof FinalizationRegistry === "undefined") {
   // @ts-expect-error polyfill
   globalThis.FinalizationRegistry = class FinalizationRegistry {
     constructor(_callback: unknown) {}
     register() {}
     unregister() {}
-  }
+  };
 }
 ```
 
@@ -56,11 +61,11 @@ Check `apps/owlite/instrumentation-client.ts` for the exact WeakRef polyfill cod
 In `apps/web/src/main.tsx`, the **very first import** must be the polyfills:
 
 ```ts
-import './polyfills'  // must be first — loads core-js before any app code
+import "./polyfills"; // must be first — loads core-js before any app code
 
-import ReactDOM from 'react-dom/client'
-import { RouterProvider, createRouter } from '@tanstack/react-router'
-import { routeTree } from './routeTree.gen'
+import ReactDOM from "react-dom/client";
+import { RouterProvider, createRouter } from "@tanstack/react-router";
+import { routeTree } from "./routeTree.gen";
 // ... rest of main.tsx
 ```
 
@@ -77,6 +82,7 @@ This should be set up in Phase 1. Confirm it's working:
 3. The flex-gap detection script is in `index.html` (adds `.no-flex-gap` class to `<html>`)
 
 How it works together:
+
 - Detection script adds `.no-flex-gap` to `<html>` at page load (synchronous, before paint)
 - PostCSS plugin transforms CSS during build: for every `gap: Xpx` on a flex container, it generates a `.no-flex-gap` prefixed rule using negative margins as fallback
 - Chrome 81 gets the margin fallback; Chrome 84+ gets native gap
@@ -86,11 +92,13 @@ How it works together:
 ## Step 4 — Verify browserslist
 
 `apps/web/package.json` must have:
+
 ```json
 "browserslist": ["chrome 81"]
 ```
 
 This is used by:
+
 - `autoprefixer` — adds vendor prefixes as needed
 - The flex-gap polyfill PostCSS plugin — it reads browserslist to decide whether to emit fallbacks
 - Vite's `build.target: 'chrome81'` (set in Phase 1) — controls esbuild output

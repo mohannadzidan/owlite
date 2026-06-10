@@ -1,6 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, type ComponentProps, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  type ComponentProps,
+  type ReactNode,
+} from "react";
 import Hls, { type ErrorData, Events, type HlsConfig } from "hls.js";
-import { createPlayerStore, PlayerStoreContext, type QualityLevel, type TextTrackInfo } from "./player-store";
+import {
+  createPlayerStore,
+  PlayerStoreContext,
+  type QualityLevel,
+  type TextTrackInfo,
+} from "./player-store";
 import { SubtitleOverlay } from "./subtitle-overlay";
 
 // ─── Types ────────────────────────────────────────────────────────────────────

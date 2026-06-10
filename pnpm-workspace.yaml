@@ -8,6 +8,6 @@ allowBuilds:
   unrs-resolver: true
 
 onlyBuiltDependencies:
-  - '@swc/core'
+  - "@swc/core"
   - better-sqlite3
   - fastify-socket.io

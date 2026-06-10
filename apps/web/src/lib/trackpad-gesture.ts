@@ -1,4 +1,3 @@
-
 import { connectionManager } from "@/lib/connection-manager";
 
 const TAP_MAX_DURATION_MS = 250;
