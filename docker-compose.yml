@@ -1,19 +1,16 @@
 services:
-  nextjs:
+  web:
     build:
       context: .
-      dockerfile: apps/owlite/Dockerfile
-    env_file:
-      - path: ./apps/owlite/.env.production
-        required: true
-    volumes:
-      - owlite-data:/app/apps/owlite/data
+      dockerfile: apps/web/Dockerfile
     restart: unless-stopped
 
   api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
+    env_file:
+      - apps/api/.env
     restart: unless-stopped
 
   proxy:
@@ -23,7 +20,7 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - nextjs
+      - web
       - api
     restart: unless-stopped
 
