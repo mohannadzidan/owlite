@@ -80,7 +80,7 @@ export const tmdb = new TMDB("", {
     const url = new URL(oldRequest.url);
 
     return fetch(
-      (import.meta.env.VITE_API_URL ?? "") + "/tmdb" + url.pathname + url.search,
+      import.meta.env.VITE_API_URL + "/api/v1/tmdb" + url.pathname + url.search,
       oldRequest,
     );
   },

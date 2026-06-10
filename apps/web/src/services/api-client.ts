@@ -11,7 +11,7 @@ import type {
   LocalMapping,
 } from "@owlite/types";
 
-const getApiBaseUrl = () => import.meta.env.VITE_API_URL ?? "http://localhost:8080";
+const getApiBaseUrl = () => `${import.meta.env.VITE_API_URL}/api/v1`;
 
 const url = (path: string) => `${getApiBaseUrl()}${path}`;
 

@@ -42,11 +42,10 @@ class ConnectionManager {
   async initialize() {
     if (this.initialized) return;
     this.initialized = true;
-    console.log("Connectiong", import.meta.env.VITE_API_URL);
     const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
       import.meta.env.VITE_API_URL,
       {
-        path: "/api/socket.io",
+        path: "/api/v1/socket.io",
       },
     );
     this.socket = socket;
