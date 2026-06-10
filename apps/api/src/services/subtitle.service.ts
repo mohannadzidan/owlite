@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { eq, and, isNull, asc } from "drizzle-orm";
-import { db, subtitles } from "@owlite/db";
+import { db, subtitles } from "../db/index";
 import type { SubtitlesUploadRequest, SubtitleTrack } from "@owlite/types";
 import { srtToVtt } from "../lib/srt-to-vtt";
 import { parseSubtitleFilename, parseSubtitleFilenameAsTv } from "../lib/filename-parser";

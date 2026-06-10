@@ -5,7 +5,7 @@ import {
   profileProgress,
   profileContinueWatching,
   profileSubtitles,
-} from "@owlite/db";
+} from "../db/index";
 import { eq, asc, and, isNull, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import type {
