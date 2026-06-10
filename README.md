@@ -2,27 +2,26 @@
 
 Personal media streaming frontend for Android TV.
 
-## Setup
+## Database migrations
 
-```bash
-pnpm install
-pnpm rebuild better-sqlite3
-pnpm drizzle-kit push
-pnpm dev
-```
+Migrations in `apps/owlite/db/migrations/` are applied automatically on every server startup via `instrumentation.ts` — no manual commands needed in production.
 
-> `pnpm drizzle-kit push` must be run once after cloning (and again whenever `db/schema.ts` changes) to apply the SQLite schema to `data/owlite.db`. The database file is created automatically.
+### When you change `db/schema.ts`
 
-## Scripts
+1. Edit `apps/owlite/db/schema.ts`.
+2. Generate a new migration file:
+   ```sh
+   pnpm --filter owlite db:generate
+   ```
+3. Commit the schema change and the generated file in `db/migrations/` together.
 
-| Command                       | Description                                 |
-| ----------------------------- | ------------------------------------------- |
-| `pnpm dev`                    | Start development server                    |
-| `pnpm build`                  | Production build                            |
-| `pnpm drizzle-kit push`       | Apply DB schema changes to `data/owlite.db` |
-| `pnpm typecheck`              | Type-check the project                      |
-| `pnpm lint` / `pnpm lint:fix` | Lint with oxlint                            |
-| `pnpm fmt`                    | Format code                                 |
+On next startup (dev restart or production deploy) the new migration runs automatically.
+
+### Rules
+
+- Never edit or delete existing files in `db/migrations/` — always add new ones.
+- Never run `drizzle-kit push` against the production database; it bypasses migration history.
+- Keep each migration focused on a single schema change.
 
 ## Adding UI components
 

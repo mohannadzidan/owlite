@@ -1,0 +1,5 @@
+FROM alpine:3.20
+RUN apk add --no-cache lighttpd
+COPY docker/lighttpd.conf /etc/lighttpd/lighttpd.conf
+EXPOSE 80
+CMD ["lighttpd", "-D", "-f", "/etc/lighttpd/lighttpd.conf"]

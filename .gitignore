@@ -1,5 +1,8 @@
+# turbo
+.turbo
+
 # dependencies
-/node_modules
+node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -7,16 +10,18 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
-
 # testing
 /coverage
 
 # next.js
-/.next/
+.next/
 /out/
 
 # production
-/build
+build/
+dist
+
+node_modules/
 
 # misc
 .DS_Store

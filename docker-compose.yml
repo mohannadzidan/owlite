@@ -1,0 +1,29 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file:
+      - apps/api/.env
+    restart: unless-stopped
+
+  proxy:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.lighttpd
+    ports:
+      - "80:80"
+    depends_on:
+      - web
+      - api
+    restart: unless-stopped
+
+volumes:
+  # Persists the SQLite database across container restarts
+  owlite-data:

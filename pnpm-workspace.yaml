@@ -1,4 +1,6 @@
-packages: []
+packages:
+  - apps/*
+  - packages/*
 
 allowBuilds:
   msw: false
@@ -6,4 +8,6 @@ allowBuilds:
   unrs-resolver: true
 
 onlyBuiltDependencies:
+  - "@swc/core"
   - better-sqlite3
+  - fastify-socket.io

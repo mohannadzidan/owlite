@@ -1,5 +1,12 @@
 {
   "permissions": {
-    "allow": ["Bash(pnpm typecheck *)", "Bash(pnpm lint *)", "Bash(pnpm fmt *)"]
+    "allow": [
+      "Bash(pnpm typecheck *)",
+      "Bash(pnpm lint *)",
+      "Bash(pnpm fmt *)",
+      "Bash(pnpm --filter api typecheck)",
+      "Bash(npx tsc *)",
+      "Bash(pnpm --filter web typecheck)"
+    ]
   }
 }
