@@ -359,7 +359,6 @@ function PlayerPage() {
   const navigate = Route.useNavigate();
   const { type, id } = Route.useParams();
   const { season, episode, source: sourceId } = Route.useSearch();
-  console.log({ type, id, season, episode, sourceId });
   const isTitleParametersOk = (type === "tv" && season && episode) || type === "movie";
   const movieTitleResponse = useSWR(
     type === "movie" ? ["tmdb.movies.details", id] : null,

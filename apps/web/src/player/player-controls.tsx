@@ -26,7 +26,6 @@ function PlayerControls({ className, children, style, ...props }: ComponentProps
   const [controlsVisible, setControlsVisible] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const virtualCursorActive = useRemoteControlStore((s) => s.cursorActive);
-  console.log("virtualCursorActive", virtualCursorActive);
   // Show controls on any keydown or mouse move
   useEffect(() => {
     const showControls = () => {
