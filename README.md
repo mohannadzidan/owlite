@@ -6,11 +6,11 @@ Personal media streaming server for Android TV. No auth layer — designed for s
 
 Monorepo managed with pnpm workspaces and Turborepo.
 
-| Package | Description |
-|---|---|
-| `apps/web` | React + Vite SPA (targets Chrome 81 for Android TV), served via lighttpd |
-| `apps/api` | Fastify REST + Socket.IO backend, SQLite via Drizzle ORM |
-| `packages/types` | Shared TypeScript types between web and api |
+| Package          | Description                                                              |
+| ---------------- | ------------------------------------------------------------------------ |
+| `apps/web`       | React + Vite SPA (targets Chrome 81 for Android TV), served via lighttpd |
+| `apps/api`       | Fastify REST + Socket.IO backend, SQLite via Drizzle ORM                 |
+| `packages/types` | Shared TypeScript types between web and api                              |
 
 ### External integrations
 
@@ -56,6 +56,7 @@ Migrations in `apps/api/src/db/migrations/` run automatically on every server st
 3. Commit the schema change and the generated migration file together.
 
 Rules:
+
 - Never edit or delete existing migration files — always add new ones.
 - Never run `drizzle-kit push` against production; it bypasses migration history.
 
@@ -67,10 +68,10 @@ npx shadcn@latest add <component>
 
 ## Scripts
 
-| Command | Description |
-|---|---|
-| `pnpm dev` | Start all apps in dev mode |
-| `pnpm build` | Build all apps |
-| `pnpm typecheck` | Type-check all packages |
-| `pnpm lint` | Lint with oxlint |
-| `pnpm fmt` | Format with oxfmt |
+| Command          | Description                |
+| ---------------- | -------------------------- |
+| `pnpm dev`       | Start all apps in dev mode |
+| `pnpm build`     | Build all apps             |
+| `pnpm typecheck` | Type-check all packages    |
+| `pnpm lint`      | Lint with oxlint           |
+| `pnpm fmt`       | Format with oxfmt          |

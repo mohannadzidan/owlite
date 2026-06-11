@@ -8,229 +8,230 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from "./routes/__root";
-import { Route as MaxiRouteImport } from "./routes/_maxi";
-import { Route as IndexRouteImport } from "./routes/index";
-import { Route as ProfilesIndexRouteImport } from "./routes/profiles/index";
-import { Route as MaxiSettingsRouteImport } from "./routes/_maxi/settings";
-import { Route as MaxiRemoteIndexRouteImport } from "./routes/_maxi/remote/index";
-import { Route as PlayerTypeIdRouteImport } from "./routes/player/$type/$id";
-import { Route as MaxiRemoteControlsRouteImport } from "./routes/_maxi/remote/controls";
-import { Route as MaxiMediaTvIdRouteImport } from "./routes/_maxi/media/tv/$id";
-import { Route as MaxiMediaMovieIdRouteImport } from "./routes/_maxi/media/movie/$id";
-import { Route as MaxiMediaTypeIdSubtitlesRouteImport } from "./routes/_maxi/media/$type/$id/subtitles";
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as MaxiRouteImport } from './routes/_maxi'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProfilesIndexRouteImport } from './routes/profiles/index'
+import { Route as MaxiSettingsRouteImport } from './routes/_maxi/settings'
+import { Route as MaxiRemoteIndexRouteImport } from './routes/_maxi/remote/index'
+import { Route as PlayerTypeIdRouteImport } from './routes/player/$type/$id'
+import { Route as MaxiRemoteControlsRouteImport } from './routes/_maxi/remote/controls'
+import { Route as MaxiMediaTvIdRouteImport } from './routes/_maxi/media/tv/$id'
+import { Route as MaxiMediaMovieIdRouteImport } from './routes/_maxi/media/movie/$id'
+import { Route as MaxiMediaTypeIdSubtitlesRouteImport } from './routes/_maxi/media/$type/$id/subtitles'
 
 const MaxiRoute = MaxiRouteImport.update({
-  id: "/_maxi",
+  id: '/_maxi',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const IndexRoute = IndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const ProfilesIndexRoute = ProfilesIndexRouteImport.update({
-  id: "/profiles/",
-  path: "/profiles/",
+  id: '/profiles/',
+  path: '/profiles/',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const MaxiSettingsRoute = MaxiSettingsRouteImport.update({
-  id: "/settings",
-  path: "/settings",
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => MaxiRoute,
-} as any);
+} as any)
 const MaxiRemoteIndexRoute = MaxiRemoteIndexRouteImport.update({
-  id: "/remote/",
-  path: "/remote/",
+  id: '/remote/',
+  path: '/remote/',
   getParentRoute: () => MaxiRoute,
-} as any);
+} as any)
 const PlayerTypeIdRoute = PlayerTypeIdRouteImport.update({
-  id: "/player/$type/$id",
-  path: "/player/$type/$id",
+  id: '/player/$type/$id',
+  path: '/player/$type/$id',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const MaxiRemoteControlsRoute = MaxiRemoteControlsRouteImport.update({
-  id: "/remote/controls",
-  path: "/remote/controls",
+  id: '/remote/controls',
+  path: '/remote/controls',
   getParentRoute: () => MaxiRoute,
-} as any);
+} as any)
 const MaxiMediaTvIdRoute = MaxiMediaTvIdRouteImport.update({
-  id: "/media/tv/$id",
-  path: "/media/tv/$id",
+  id: '/media/tv/$id',
+  path: '/media/tv/$id',
   getParentRoute: () => MaxiRoute,
-} as any);
+} as any)
 const MaxiMediaMovieIdRoute = MaxiMediaMovieIdRouteImport.update({
-  id: "/media/movie/$id",
-  path: "/media/movie/$id",
+  id: '/media/movie/$id',
+  path: '/media/movie/$id',
   getParentRoute: () => MaxiRoute,
-} as any);
-const MaxiMediaTypeIdSubtitlesRoute = MaxiMediaTypeIdSubtitlesRouteImport.update({
-  id: "/media/$type/$id/subtitles",
-  path: "/media/$type/$id/subtitles",
-  getParentRoute: () => MaxiRoute,
-} as any);
+} as any)
+const MaxiMediaTypeIdSubtitlesRoute =
+  MaxiMediaTypeIdSubtitlesRouteImport.update({
+    id: '/media/$type/$id/subtitles',
+    path: '/media/$type/$id/subtitles',
+    getParentRoute: () => MaxiRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute;
-  "/settings": typeof MaxiSettingsRoute;
-  "/profiles/": typeof ProfilesIndexRoute;
-  "/remote/controls": typeof MaxiRemoteControlsRoute;
-  "/player/$type/$id": typeof PlayerTypeIdRoute;
-  "/remote/": typeof MaxiRemoteIndexRoute;
-  "/media/movie/$id": typeof MaxiMediaMovieIdRoute;
-  "/media/tv/$id": typeof MaxiMediaTvIdRoute;
-  "/media/$type/$id/subtitles": typeof MaxiMediaTypeIdSubtitlesRoute;
+  '/': typeof IndexRoute
+  '/settings': typeof MaxiSettingsRoute
+  '/profiles/': typeof ProfilesIndexRoute
+  '/remote/controls': typeof MaxiRemoteControlsRoute
+  '/player/$type/$id': typeof PlayerTypeIdRoute
+  '/remote/': typeof MaxiRemoteIndexRoute
+  '/media/movie/$id': typeof MaxiMediaMovieIdRoute
+  '/media/tv/$id': typeof MaxiMediaTvIdRoute
+  '/media/$type/$id/subtitles': typeof MaxiMediaTypeIdSubtitlesRoute
 }
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute;
-  "/settings": typeof MaxiSettingsRoute;
-  "/profiles": typeof ProfilesIndexRoute;
-  "/remote/controls": typeof MaxiRemoteControlsRoute;
-  "/player/$type/$id": typeof PlayerTypeIdRoute;
-  "/remote": typeof MaxiRemoteIndexRoute;
-  "/media/movie/$id": typeof MaxiMediaMovieIdRoute;
-  "/media/tv/$id": typeof MaxiMediaTvIdRoute;
-  "/media/$type/$id/subtitles": typeof MaxiMediaTypeIdSubtitlesRoute;
+  '/': typeof IndexRoute
+  '/settings': typeof MaxiSettingsRoute
+  '/profiles': typeof ProfilesIndexRoute
+  '/remote/controls': typeof MaxiRemoteControlsRoute
+  '/player/$type/$id': typeof PlayerTypeIdRoute
+  '/remote': typeof MaxiRemoteIndexRoute
+  '/media/movie/$id': typeof MaxiMediaMovieIdRoute
+  '/media/tv/$id': typeof MaxiMediaTvIdRoute
+  '/media/$type/$id/subtitles': typeof MaxiMediaTypeIdSubtitlesRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport;
-  "/": typeof IndexRoute;
-  "/_maxi": typeof MaxiRouteWithChildren;
-  "/_maxi/settings": typeof MaxiSettingsRoute;
-  "/profiles/": typeof ProfilesIndexRoute;
-  "/_maxi/remote/controls": typeof MaxiRemoteControlsRoute;
-  "/player/$type/$id": typeof PlayerTypeIdRoute;
-  "/_maxi/remote/": typeof MaxiRemoteIndexRoute;
-  "/_maxi/media/movie/$id": typeof MaxiMediaMovieIdRoute;
-  "/_maxi/media/tv/$id": typeof MaxiMediaTvIdRoute;
-  "/_maxi/media/$type/$id/subtitles": typeof MaxiMediaTypeIdSubtitlesRoute;
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/_maxi': typeof MaxiRouteWithChildren
+  '/_maxi/settings': typeof MaxiSettingsRoute
+  '/profiles/': typeof ProfilesIndexRoute
+  '/_maxi/remote/controls': typeof MaxiRemoteControlsRoute
+  '/player/$type/$id': typeof PlayerTypeIdRoute
+  '/_maxi/remote/': typeof MaxiRemoteIndexRoute
+  '/_maxi/media/movie/$id': typeof MaxiMediaMovieIdRoute
+  '/_maxi/media/tv/$id': typeof MaxiMediaTvIdRoute
+  '/_maxi/media/$type/$id/subtitles': typeof MaxiMediaTypeIdSubtitlesRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath;
+  fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | "/"
-    | "/settings"
-    | "/profiles/"
-    | "/remote/controls"
-    | "/player/$type/$id"
-    | "/remote/"
-    | "/media/movie/$id"
-    | "/media/tv/$id"
-    | "/media/$type/$id/subtitles";
-  fileRoutesByTo: FileRoutesByTo;
+    | '/'
+    | '/settings'
+    | '/profiles/'
+    | '/remote/controls'
+    | '/player/$type/$id'
+    | '/remote/'
+    | '/media/movie/$id'
+    | '/media/tv/$id'
+    | '/media/$type/$id/subtitles'
+  fileRoutesByTo: FileRoutesByTo
   to:
-    | "/"
-    | "/settings"
-    | "/profiles"
-    | "/remote/controls"
-    | "/player/$type/$id"
-    | "/remote"
-    | "/media/movie/$id"
-    | "/media/tv/$id"
-    | "/media/$type/$id/subtitles";
+    | '/'
+    | '/settings'
+    | '/profiles'
+    | '/remote/controls'
+    | '/player/$type/$id'
+    | '/remote'
+    | '/media/movie/$id'
+    | '/media/tv/$id'
+    | '/media/$type/$id/subtitles'
   id:
-    | "__root__"
-    | "/"
-    | "/_maxi"
-    | "/_maxi/settings"
-    | "/profiles/"
-    | "/_maxi/remote/controls"
-    | "/player/$type/$id"
-    | "/_maxi/remote/"
-    | "/_maxi/media/movie/$id"
-    | "/_maxi/media/tv/$id"
-    | "/_maxi/media/$type/$id/subtitles";
-  fileRoutesById: FileRoutesById;
+    | '__root__'
+    | '/'
+    | '/_maxi'
+    | '/_maxi/settings'
+    | '/profiles/'
+    | '/_maxi/remote/controls'
+    | '/player/$type/$id'
+    | '/_maxi/remote/'
+    | '/_maxi/media/movie/$id'
+    | '/_maxi/media/tv/$id'
+    | '/_maxi/media/$type/$id/subtitles'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute;
-  MaxiRoute: typeof MaxiRouteWithChildren;
-  ProfilesIndexRoute: typeof ProfilesIndexRoute;
-  PlayerTypeIdRoute: typeof PlayerTypeIdRoute;
+  IndexRoute: typeof IndexRoute
+  MaxiRoute: typeof MaxiRouteWithChildren
+  ProfilesIndexRoute: typeof ProfilesIndexRoute
+  PlayerTypeIdRoute: typeof PlayerTypeIdRoute
 }
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    "/_maxi": {
-      id: "/_maxi";
-      path: "";
-      fullPath: "/";
-      preLoaderRoute: typeof MaxiRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/": {
-      id: "/";
-      path: "/";
-      fullPath: "/";
-      preLoaderRoute: typeof IndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/profiles/": {
-      id: "/profiles/";
-      path: "/profiles";
-      fullPath: "/profiles/";
-      preLoaderRoute: typeof ProfilesIndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/_maxi/settings": {
-      id: "/_maxi/settings";
-      path: "/settings";
-      fullPath: "/settings";
-      preLoaderRoute: typeof MaxiSettingsRouteImport;
-      parentRoute: typeof MaxiRoute;
-    };
-    "/_maxi/remote/": {
-      id: "/_maxi/remote/";
-      path: "/remote";
-      fullPath: "/remote/";
-      preLoaderRoute: typeof MaxiRemoteIndexRouteImport;
-      parentRoute: typeof MaxiRoute;
-    };
-    "/player/$type/$id": {
-      id: "/player/$type/$id";
-      path: "/player/$type/$id";
-      fullPath: "/player/$type/$id";
-      preLoaderRoute: typeof PlayerTypeIdRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/_maxi/remote/controls": {
-      id: "/_maxi/remote/controls";
-      path: "/remote/controls";
-      fullPath: "/remote/controls";
-      preLoaderRoute: typeof MaxiRemoteControlsRouteImport;
-      parentRoute: typeof MaxiRoute;
-    };
-    "/_maxi/media/tv/$id": {
-      id: "/_maxi/media/tv/$id";
-      path: "/media/tv/$id";
-      fullPath: "/media/tv/$id";
-      preLoaderRoute: typeof MaxiMediaTvIdRouteImport;
-      parentRoute: typeof MaxiRoute;
-    };
-    "/_maxi/media/movie/$id": {
-      id: "/_maxi/media/movie/$id";
-      path: "/media/movie/$id";
-      fullPath: "/media/movie/$id";
-      preLoaderRoute: typeof MaxiMediaMovieIdRouteImport;
-      parentRoute: typeof MaxiRoute;
-    };
-    "/_maxi/media/$type/$id/subtitles": {
-      id: "/_maxi/media/$type/$id/subtitles";
-      path: "/media/$type/$id/subtitles";
-      fullPath: "/media/$type/$id/subtitles";
-      preLoaderRoute: typeof MaxiMediaTypeIdSubtitlesRouteImport;
-      parentRoute: typeof MaxiRoute;
-    };
+    '/_maxi': {
+      id: '/_maxi'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof MaxiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profiles/': {
+      id: '/profiles/'
+      path: '/profiles'
+      fullPath: '/profiles/'
+      preLoaderRoute: typeof ProfilesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_maxi/settings': {
+      id: '/_maxi/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof MaxiSettingsRouteImport
+      parentRoute: typeof MaxiRoute
+    }
+    '/_maxi/remote/': {
+      id: '/_maxi/remote/'
+      path: '/remote'
+      fullPath: '/remote/'
+      preLoaderRoute: typeof MaxiRemoteIndexRouteImport
+      parentRoute: typeof MaxiRoute
+    }
+    '/player/$type/$id': {
+      id: '/player/$type/$id'
+      path: '/player/$type/$id'
+      fullPath: '/player/$type/$id'
+      preLoaderRoute: typeof PlayerTypeIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_maxi/remote/controls': {
+      id: '/_maxi/remote/controls'
+      path: '/remote/controls'
+      fullPath: '/remote/controls'
+      preLoaderRoute: typeof MaxiRemoteControlsRouteImport
+      parentRoute: typeof MaxiRoute
+    }
+    '/_maxi/media/tv/$id': {
+      id: '/_maxi/media/tv/$id'
+      path: '/media/tv/$id'
+      fullPath: '/media/tv/$id'
+      preLoaderRoute: typeof MaxiMediaTvIdRouteImport
+      parentRoute: typeof MaxiRoute
+    }
+    '/_maxi/media/movie/$id': {
+      id: '/_maxi/media/movie/$id'
+      path: '/media/movie/$id'
+      fullPath: '/media/movie/$id'
+      preLoaderRoute: typeof MaxiMediaMovieIdRouteImport
+      parentRoute: typeof MaxiRoute
+    }
+    '/_maxi/media/$type/$id/subtitles': {
+      id: '/_maxi/media/$type/$id/subtitles'
+      path: '/media/$type/$id/subtitles'
+      fullPath: '/media/$type/$id/subtitles'
+      preLoaderRoute: typeof MaxiMediaTypeIdSubtitlesRouteImport
+      parentRoute: typeof MaxiRoute
+    }
   }
 }
 
 interface MaxiRouteChildren {
-  MaxiSettingsRoute: typeof MaxiSettingsRoute;
-  MaxiRemoteControlsRoute: typeof MaxiRemoteControlsRoute;
-  MaxiRemoteIndexRoute: typeof MaxiRemoteIndexRoute;
-  MaxiMediaMovieIdRoute: typeof MaxiMediaMovieIdRoute;
-  MaxiMediaTvIdRoute: typeof MaxiMediaTvIdRoute;
-  MaxiMediaTypeIdSubtitlesRoute: typeof MaxiMediaTypeIdSubtitlesRoute;
+  MaxiSettingsRoute: typeof MaxiSettingsRoute
+  MaxiRemoteControlsRoute: typeof MaxiRemoteControlsRoute
+  MaxiRemoteIndexRoute: typeof MaxiRemoteIndexRoute
+  MaxiMediaMovieIdRoute: typeof MaxiMediaMovieIdRoute
+  MaxiMediaTvIdRoute: typeof MaxiMediaTvIdRoute
+  MaxiMediaTypeIdSubtitlesRoute: typeof MaxiMediaTypeIdSubtitlesRoute
 }
 
 const MaxiRouteChildren: MaxiRouteChildren = {
@@ -240,16 +241,16 @@ const MaxiRouteChildren: MaxiRouteChildren = {
   MaxiMediaMovieIdRoute: MaxiMediaMovieIdRoute,
   MaxiMediaTvIdRoute: MaxiMediaTvIdRoute,
   MaxiMediaTypeIdSubtitlesRoute: MaxiMediaTypeIdSubtitlesRoute,
-};
+}
 
-const MaxiRouteWithChildren = MaxiRoute._addFileChildren(MaxiRouteChildren);
+const MaxiRouteWithChildren = MaxiRoute._addFileChildren(MaxiRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   MaxiRoute: MaxiRouteWithChildren,
   ProfilesIndexRoute: ProfilesIndexRoute,
   PlayerTypeIdRoute: PlayerTypeIdRoute,
-};
+}
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>();
+  ._addFileTypes<FileRouteTypes>()

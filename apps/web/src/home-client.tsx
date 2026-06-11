@@ -1,6 +1,6 @@
 import { ChevronLeft, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useLocation } from "@tanstack/react-router";
+import { useNavigate, useLocation, useLoaderData } from "@tanstack/react-router";
 import useSWR from "swr";
 import { tmdb } from "@/services/tmdb.service";
 import { Button } from "@/components/ui/button";
@@ -70,13 +70,23 @@ export default function HomeClient() {
   const query = searchParams.get("q")?.trim();
   const [searchInput, setSearchInput] = useState(query ?? "");
 
-  const { continueWatching } = useContinueWatching();
+  const {
+    discoverData: initialDiscoverData,
+    continueWatching: initialContinueWatching,
+    recommendations,
+  } = useLoaderData({ from: "/" });
 
-  const { data: discoverData } = useSWR("tmdb-discover", async () => {
-    const result = await tmdb.trending.trending("all", "day");
-    if ("error" in result) throw result;
-    return result;
-  });
+  const { continueWatching } = useContinueWatching(initialContinueWatching);
+
+  const { data: discoverData } = useSWR(
+    "tmdb-discover",
+    async () => {
+      const result = await tmdb.trending.trending("all", "day");
+      if ("error" in result) throw result;
+      return result;
+    },
+    { fallbackData: initialDiscoverData },
+  );
 
   const trimmedQuery = debouncedQuery.trim();
   const { data: searchData, isLoading: searchLoading } = useSWR(
@@ -219,6 +229,91 @@ export default function HomeClient() {
                   <CarouselNext />
                 </Carousel>
               </section>
+            )}
+            {recommendations.becauseYouWatched.map(
+              (row) =>
+                row.items.length > 0 && (
+                  <section key={row.seedId} className="animate-in">
+                    <h2>Because you watched {row.seedTitle}</h2>
+                    <Carousel className="-mx-8">
+                      <CarouselContent className="px-8">
+                        {row.items.map((item) => (
+                          <CarouselItem key={item.id} className="basis-1/8">
+                            <Link
+                              to={
+                                item.media_type === "movie" ? "/media/movie/$id" : "/media/tv/$id"
+                              }
+                              params={{ id: item.id.toString() }}
+                            >
+                              <PosterCard
+                                posterPath={item.poster_path}
+                                alt={item.title}
+                                className="mx-auto"
+                              />
+                            </Link>
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                      <CarouselPrevious />
+                      <CarouselNext />
+                    </Carousel>
+                  </section>
+                ),
+            )}
+            {recommendations.topPicks.length > 0 && (
+              <section className="animate-in">
+                <h2>Top Picks for You</h2>
+                <Carousel className="-mx-8">
+                  <CarouselContent className="px-8">
+                    {recommendations.topPicks.map((item) => (
+                      <CarouselItem key={item.id} className="basis-1/8">
+                        <Link
+                          to={item.media_type === "movie" ? "/media/movie/$id" : "/media/tv/$id"}
+                          params={{ id: item.id.toString() }}
+                        >
+                          <PosterCard
+                            posterPath={item.poster_path}
+                            alt={item.title}
+                            className="mx-auto"
+                          />
+                        </Link>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious />
+                  <CarouselNext />
+                </Carousel>
+              </section>
+            )}
+            {recommendations.topCategories.map(
+              (cat) =>
+                cat.items.length > 0 && (
+                  <section key={cat.genreName} className="animate-in">
+                    <h2>More {cat.genreName}</h2>
+                    <Carousel className="-mx-8">
+                      <CarouselContent className="px-8">
+                        {cat.items.map((item) => (
+                          <CarouselItem key={item.id} className="basis-1/8">
+                            <Link
+                              to={
+                                item.media_type === "movie" ? "/media/movie/$id" : "/media/tv/$id"
+                              }
+                              params={{ id: item.id.toString() }}
+                            >
+                              <PosterCard
+                                posterPath={item.poster_path}
+                                alt={item.title}
+                                className="mx-auto"
+                              />
+                            </Link>
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                      <CarouselPrevious />
+                      <CarouselNext />
+                    </Carousel>
+                  </section>
+                ),
             )}
             <section>
               <h2>Trending Movies</h2>

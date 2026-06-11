@@ -1,5 +1,4 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import useSWR from "swr";
 import dayjs from "dayjs";
 import { tmdb } from "@/services/tmdb.service";
 import { Badge } from "@/components/ui/badge";
@@ -8,32 +7,29 @@ import Muted from "@/components/typography/muted";
 import Heading from "@/components/typography/heading";
 import PlayButton from "@/components/play-button";
 import { SubtitlesNavButton } from "@/components/subtitles-nav-button";
+import FullScreenSpinner from "@/components/fullscreen-spinner";
 
 export const Route = createFileRoute("/_maxi/media/tv/$id")({
   validateSearch: (search) => ({
     season: search.season ? Number(search.season) : undefined,
   }),
+  loader: async ({ params: { id } }) => {
+    const numId = Number(id);
+    if (isNaN(numId)) throw notFound();
+    const details = await tmdb.tvShows.details(numId, ["credits", "episode_groups"]);
+    if ("error" in details) throw notFound();
+    return details;
+  },
+  pendingComponent: FullScreenSpinner,
   component: TvDetailPage,
 });
 
 const BACKDROP = "https://image.tmdb.org/t/p/w1280";
 
-function LoadingSkeleton() {
-  return <div className="fixed inset-0 bg-black" />;
-}
-
 function TvDetailPage() {
+  const details = Route.useLoaderData();
   const { id } = Route.useParams();
   const { season: initialSeason } = Route.useSearch();
-
-  const { data: details, isLoading } = useSWR(
-    !isNaN(Number(id)) ? ["tmdb/tv", Number(id)] : null,
-    () => tmdb.tvShows.details(Number(id), ["credits", "episode_groups"]),
-  );
-
-  if (isNaN(Number(id))) throw notFound();
-  if (isLoading) return <LoadingSkeleton />;
-  if (!details || "error" in details) throw notFound();
 
   return (
     <main className="pt-16 p-8 flex flex-col h-screen">

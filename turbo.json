@@ -13,11 +13,9 @@
       "persistent": true,
       "cache": false
     },
-    "tasks": {
-      "//#lint": {},
-      "//#lint:fix": {
-        "cache": false
-      }
+    "//#lint": {},
+    "//#lint:fix": {
+      "cache": false
     }
   }
 }

@@ -2,9 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import SelectSourceDialog from "@/player/select-source-page";
 import useSWR from "swr";
 import { sources } from "@/services/api.service";
-import { Button } from "@/components/ui/button";
-import { Link } from "@tanstack/react-router";
-import ErrorFallback from "@/components/error";
 import { errorThrower } from "@/services/request";
 import FullScreenSpinner from "@/components/fullscreen-spinner";
 import Player from "@/player/player";
@@ -28,6 +25,40 @@ export const Route = createFileRoute("/player/$type/$id")({
     episode: typeof search.episode === "string" ? search.episode : undefined,
     source: typeof search.source === "string" ? search.source : undefined,
   }),
+  loaderDeps: ({ search: { season, episode, source } }) => ({ season, episode, source }),
+  loader: async ({ params: { type, id }, deps: { season, episode, source: sourceId } }) => {
+    if (!sourceId) return null;
+
+    const [movieDetails, tvDetails] = await Promise.all([
+      type === "movie" ? tmdb.movies.details(Number(id), ["external_ids"]) : Promise.resolve(null),
+      type === "tv" ? tmdb.tvShows.details(Number(id), ["external_ids"]) : Promise.resolve(null),
+    ]);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const imdbId =
+      type === "movie"
+        ? (movieDetails as any)?.external_ids?.imdb_id
+        : (tvDetails as any)?.external_ids?.imdb_id;
+
+    const [playData, seasonData] = await Promise.all([
+      errorThrower(
+        sources.play({
+          source_id: sourceId,
+          imdb_id: imdbId!,
+          media_type: type as "tv" | "movie",
+          screenSize: Math.min(window.screen.width, window.screen.height),
+          season: season ? parseInt(season) : undefined,
+          episode: episode ? parseInt(episode) : undefined,
+        }),
+      ),
+      type === "tv" && season
+        ? tmdb.tvSeasons.details({ tvShowID: Number(id), seasonNumber: Number(season) })
+        : Promise.resolve(null),
+    ]);
+
+    return { movieDetails, tvDetails, playData, seasonData };
+  },
+  pendingComponent: FullScreenSpinner,
   component: PlayerPage,
 });
 
@@ -359,47 +390,7 @@ function PlayerPage() {
   const navigate = Route.useNavigate();
   const { type, id } = Route.useParams();
   const { season, episode, source: sourceId } = Route.useSearch();
-  const isTitleParametersOk = (type === "tv" && season && episode) || type === "movie";
-  const movieTitleResponse = useSWR(
-    type === "movie" ? ["tmdb.movies.details", id] : null,
-    () => tmdb.movies.details(Number(id), ["external_ids"]),
-    { revalidateOnFocus: false },
-  );
-
-  const tvTitleResponse = useSWR(
-    type === "tv" ? ["tmdb.tvShows.details", id] : null,
-    () => tmdb.tvShows.details(Number(id), ["external_ids"]),
-    { revalidateOnFocus: false },
-  );
-
-  const playResponse = useSWR(
-    sourceId &&
-      isTitleParametersOk &&
-      (type === "movie" ? movieTitleResponse.data : tvTitleResponse.data)
-      ? [sourceId, type, id, season, episode]
-      : null,
-    () =>
-      errorThrower(
-        sources.play({
-          source_id: sourceId!,
-          imdb_id:
-            type === "movie"
-              ? movieTitleResponse.data!.external_ids.imdb_id!
-              : tvTitleResponse.data!.external_ids.imdb_id!,
-          media_type: type as "tv" | "movie",
-          screenSize: Math.min(window.screen.width, window.screen.height),
-          episode: episode ? parseInt(episode) : undefined,
-          season: season ? parseInt(season) : undefined,
-        }),
-      ),
-    { revalidateOnFocus: false },
-  );
-
-  const seasonDetails = useSWR(
-    type === "tv" && season && ["tmdb.tvSeasons.details", id, season],
-    () => tmdb.tvSeasons.details({ tvShowID: Number(id), seasonNumber: Number(season!) }),
-    { revalidateOnFocus: false },
-  );
+  const loaderData = Route.useLoaderData();
 
   useEffect(() => {
     document.body.classList.add("overflow-hidden");
@@ -409,96 +400,63 @@ function PlayerPage() {
   }, []);
 
   useEffect(() => {
-    if (!profileId) return;
-    if (tvTitleResponse.data?.id && tvTitleResponse.data.id === Number(id)) {
+    if (!profileId || !loaderData) return;
+    const { tvDetails, movieDetails } = loaderData;
+    if (tvDetails && !("error" in tvDetails) && tvDetails.id === Number(id)) {
       void profileService.saveContinueWatching(profileId, {
         id: Number(id),
         type: "tv",
         lastWatch: Date.now(),
-        name: tvTitleResponse.data.name,
-        overview: tvTitleResponse.data.overview,
+        name: tvDetails.name,
+        overview: tvDetails.overview,
         season: Number(season!),
         episode: Number(episode!),
-        backdrop_path: tvTitleResponse.data.backdrop_path,
-        poster_path: tvTitleResponse.data.poster_path,
+        backdrop_path: tvDetails.backdrop_path,
+        poster_path: tvDetails.poster_path,
       });
-    } else if (movieTitleResponse.data?.id && movieTitleResponse.data.id === Number(id)) {
+    } else if (movieDetails && !("error" in movieDetails) && movieDetails.id === Number(id)) {
       void profileService.saveContinueWatching(profileId, {
         id: Number(id),
         type: "movie",
         lastWatch: Date.now(),
-        name: movieTitleResponse.data.title,
-        overview: movieTitleResponse.data.overview,
-        backdrop_path: movieTitleResponse.data.backdrop_path,
-        poster_path: movieTitleResponse.data.poster_path ?? null,
+        name: movieDetails.title,
+        overview: movieDetails.overview,
+        backdrop_path: movieDetails.backdrop_path,
+        poster_path: movieDetails.poster_path ?? null,
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profileId, id, tvTitleResponse.data?.id, movieTitleResponse.data?.id]);
+  }, [profileId, id, loaderData]);
 
-  if (!sourceId)
+  if (!sourceId || !loaderData) {
     return (
       <SelectSourceDialog type={type as "tv" | "movie"} season={season} episode={episode} id={id} />
     );
-
-  if (
-    tvTitleResponse.isLoading ||
-    movieTitleResponse.isLoading ||
-    playResponse.isLoading ||
-    seasonDetails.isLoading
-  ) {
-    return <FullScreenSpinner />;
   }
 
-  if (
-    !isTitleParametersOk ||
-    playResponse.error ||
-    tvTitleResponse.error ||
-    movieTitleResponse.error ||
-    seasonDetails.error ||
-    (!movieTitleResponse.data && !tvTitleResponse.data) ||
-    !playResponse.data
-  ) {
-    return (
-      <div className="h-full w-full flex flex-col justify-center items-center">
-        {JSON.stringify([
-          !isTitleParametersOk,
-          playResponse.error,
-          tvTitleResponse.error,
-          movieTitleResponse.error,
-          seasonDetails.error,
-          !movieTitleResponse.data && !tvTitleResponse.data,
-          !playResponse.data,
-        ])}
-        <ErrorFallback
-          title="Something went wrong"
-          message="Unexpected error occurred, please try again later."
-        >
-          <Button asChild>
-            <Link to="/">Go back</Link>
-          </Button>
-        </ErrorFallback>
-      </div>
-    );
-  }
+  const { movieDetails, tvDetails, playData, seasonData } = loaderData;
 
   const streamUrl = new URL(
-    playResponse.data!.type === "hls"
-      ? playResponse.data!.master_manifest_url
-      : playResponse.data!.url,
+    playData.type === "hls" ? playData.master_manifest_url : playData.url,
     import.meta.env.VITE_API_URL,
   ).toString();
 
-  const title = type === "movie" ? movieTitleResponse.data!.title : tvTitleResponse.data!.name;
-  const tmdbId = type === "movie" ? movieTitleResponse.data!.id : tvTitleResponse.data!.id;
+  const title = type === "movie" ? (movieDetails as any).title : (tvDetails as any).name;
+  const tmdbId = type === "movie" ? (movieDetails as any).id : (tvDetails as any).id;
   const imdbId =
     type === "movie"
-      ? movieTitleResponse.data!.external_ids.imdb_id
-      : tvTitleResponse.data!.external_ids.imdb_id;
-  const seasons =
-    tvTitleResponse.data?.seasons
-      .filter((s) => s.season_number > 0)
-      .sort((a, b) => a.season_number - b.season_number) ?? [];
+      ? (movieDetails as any).external_ids?.imdb_id
+      : (tvDetails as any).external_ids?.imdb_id;
+
+  const seasons: Array<{ season_number: number; episode_count: number }> = (
+    (tvDetails as any)?.seasons ?? []
+  )
+    .filter((s: { season_number: number }) => s.season_number > 0)
+    .sort(
+      (a: { season_number: number }, b: { season_number: number }) =>
+        a.season_number - b.season_number,
+    );
+
   const nextSeason =
     type === "tv" && season && episode && seasons.length !== Number(season)
       ? Number(season) + 1
@@ -550,7 +508,9 @@ function PlayerPage() {
       <PlayerUI
         title={title}
         episodeTitle={
-          seasonDetails?.data?.episodes.find((e) => e.episode_number === Number(episode))?.name
+          (seasonData as any)?.episodes?.find(
+            (e: { episode_number: number }) => e.episode_number === Number(episode),
+          )?.name
         }
         tmdbId={tmdbId}
         imdbId={imdbId}
@@ -559,7 +519,7 @@ function PlayerPage() {
         nextSeason={nextSeason}
         nextEpisode={nextEpisode}
         onNextEpisode={nextEpisodeHandler}
-        fileName={playResponse.data.type === "hls" ? playResponse.data.fileName : undefined}
+        fileName={playData.type === "hls" ? playData.fileName : undefined}
       />
     </Player>
   );

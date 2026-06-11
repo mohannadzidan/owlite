@@ -9,6 +9,7 @@ import type {
   PlayResponse,
   ResolveParams,
   LocalMapping,
+  RecommendationsPayload,
 } from "@owlite/types";
 
 const getApiBaseUrl = () => `${import.meta.env.VITE_API_URL}/api/v1`;
@@ -103,6 +104,10 @@ export const apiClient = {
     ) => request<{ ok: boolean }>(url("/subtitles/list"), json("PATCH", payload)),
     delete: (payload: { id?: number; batchId?: string }) =>
       request<{ deleted: number }>(url("/subtitles/list"), json("DELETE", payload)),
+  },
+  recommendations: {
+    get: (profileId: string) =>
+      request<RecommendationsPayload>(url(`/profiles/${profileId}/recommendations`)),
   },
   profileSubtitles: {
     get: (profileId: string, params: { tmdbId: number; season?: number; episode?: number }) =>
