@@ -70,8 +70,11 @@ export default function HomeClient() {
   const query = searchParams.get("q")?.trim();
   const [searchInput, setSearchInput] = useState(query ?? "");
 
-  const { discoverData: initialDiscoverData, continueWatching: initialContinueWatching } =
-    useLoaderData({ from: "/" });
+  const {
+    discoverData: initialDiscoverData,
+    continueWatching: initialContinueWatching,
+    recommendations,
+  } = useLoaderData({ from: "/" });
 
   const { continueWatching } = useContinueWatching(initialContinueWatching);
 
@@ -226,6 +229,91 @@ export default function HomeClient() {
                   <CarouselNext />
                 </Carousel>
               </section>
+            )}
+            {recommendations.becauseYouWatched.map(
+              (row) =>
+                row.items.length > 0 && (
+                  <section key={row.seedId} className="animate-in">
+                    <h2>Because you watched {row.seedTitle}</h2>
+                    <Carousel className="-mx-8">
+                      <CarouselContent className="px-8">
+                        {row.items.map((item) => (
+                          <CarouselItem key={item.id} className="basis-1/8">
+                            <Link
+                              to={
+                                item.media_type === "movie" ? "/media/movie/$id" : "/media/tv/$id"
+                              }
+                              params={{ id: item.id.toString() }}
+                            >
+                              <PosterCard
+                                posterPath={item.poster_path}
+                                alt={item.title}
+                                className="mx-auto"
+                              />
+                            </Link>
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                      <CarouselPrevious />
+                      <CarouselNext />
+                    </Carousel>
+                  </section>
+                ),
+            )}
+            {recommendations.topPicks.length > 0 && (
+              <section className="animate-in">
+                <h2>Top Picks for You</h2>
+                <Carousel className="-mx-8">
+                  <CarouselContent className="px-8">
+                    {recommendations.topPicks.map((item) => (
+                      <CarouselItem key={item.id} className="basis-1/8">
+                        <Link
+                          to={item.media_type === "movie" ? "/media/movie/$id" : "/media/tv/$id"}
+                          params={{ id: item.id.toString() }}
+                        >
+                          <PosterCard
+                            posterPath={item.poster_path}
+                            alt={item.title}
+                            className="mx-auto"
+                          />
+                        </Link>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious />
+                  <CarouselNext />
+                </Carousel>
+              </section>
+            )}
+            {recommendations.topCategories.map(
+              (cat) =>
+                cat.items.length > 0 && (
+                  <section key={cat.genreName} className="animate-in">
+                    <h2>More {cat.genreName}</h2>
+                    <Carousel className="-mx-8">
+                      <CarouselContent className="px-8">
+                        {cat.items.map((item) => (
+                          <CarouselItem key={item.id} className="basis-1/8">
+                            <Link
+                              to={
+                                item.media_type === "movie" ? "/media/movie/$id" : "/media/tv/$id"
+                              }
+                              params={{ id: item.id.toString() }}
+                            >
+                              <PosterCard
+                                posterPath={item.poster_path}
+                                alt={item.title}
+                                className="mx-auto"
+                              />
+                            </Link>
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                      <CarouselPrevious />
+                      <CarouselNext />
+                    </Carousel>
+                  </section>
+                ),
             )}
             <section>
               <h2>Trending Movies</h2>

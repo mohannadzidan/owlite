@@ -64,6 +64,12 @@ export const profileContinueWatching = sqliteTable(
   (t) => [uniqueIndex("profile_continue_watching_unique").on(t.profileId, t.tmdbId)],
 );
 
+export const profileRecommendations = sqliteTable("profile_recommendations", {
+  profileId: text("profile_id").primaryKey(),
+  payload: text("payload").notNull(),
+  createdAt: integer("created_at").notNull(),
+});
+
 export const profileSubtitles = sqliteTable(
   "profile_subtitles",
   {

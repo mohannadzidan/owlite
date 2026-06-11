@@ -7,6 +7,7 @@ import {
   deleteProfile,
 } from "../services/profile.service";
 import * as profileService from "../services/profile.service";
+import { getRecommendations } from "../services/recommendations.service";
 
 const createBodySchema = z.object({ name: z.string().min(1).trim() });
 const updateBodySchema = z.object({
@@ -65,8 +66,8 @@ export default async function (fastify: FastifyInstance) {
     return profileService.getProgress(
       profileId,
       Number(tmdbId),
-      season !== undefined ? Number(season) : undefined,
-      episode !== undefined ? Number(episode) : undefined,
+      !isNaN(Number(season)) ? Number(season) : undefined,
+      !isNaN(Number(episode)) ? Number(episode) : undefined,
     );
   });
 
@@ -80,8 +81,8 @@ export default async function (fastify: FastifyInstance) {
     profileService.patchProgress(
       profileId,
       Number(tmdbId),
-      season !== undefined ? Number(season) : undefined,
-      episode !== undefined ? Number(episode) : undefined,
+      !isNaN(Number(season)) ? Number(season) : undefined,
+      !isNaN(Number(episode)) ? Number(episode) : undefined,
       req.body as Record<string, unknown>,
     );
     return { ok: true };
@@ -115,10 +116,19 @@ export default async function (fastify: FastifyInstance) {
     const subtitleUrl = profileService.getProfileSubtitles(
       profileId,
       Number(tmdbId),
-      season !== undefined ? Number(season) : undefined,
-      episode !== undefined ? Number(episode) : undefined,
+      !isNaN(Number(season)) ? Number(season) : undefined,
+      !isNaN(Number(episode)) ? Number(episode) : undefined,
     );
     return { subtitleUrl };
+  });
+
+  fastify.get("/profiles/:profileId/recommendations", async (req) => {
+    const { profileId } = req.params as { profileId: string };
+    try {
+      return await getRecommendations(profileId);
+    } catch {
+      return { becauseYouWatched: [], topPicks: [], topCategories: [] };
+    }
   });
 
   fastify.patch("/profiles/:profileId/subtitles", async (req) => {
