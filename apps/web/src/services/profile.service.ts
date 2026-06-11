@@ -5,6 +5,7 @@ import type {
   Profile,
   ProgressRecord,
 } from "@/lib/profile-types";
+import type { RecommendationsPayload } from "@owlite/types";
 
 export const profileService = {
   // Profiles
@@ -48,6 +49,10 @@ export const profileService = {
     episode?: number,
   ): Promise<void> =>
     apiClient.progress.patch(profileId, { tmdbId, season, episode }, update).then(() => {}),
+
+  // Recommendations
+  getRecommendations: (profileId: string): Promise<RecommendationsPayload> =>
+    apiClient.recommendations.get(profileId).then((r) => ("error" in r ? Promise.reject(r) : r)),
 
   // Subtitles
   getSubtitles: (

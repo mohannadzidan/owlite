@@ -8,6 +8,13 @@
       "when": 1780871416480,
       "tag": "0000_special_mathemanic",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1780875180000,
+      "tag": "0001_recommendations_cache",
+      "breakpoints": true
     }
   ]
 }
