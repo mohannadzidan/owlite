@@ -33,51 +33,78 @@ After writing or editing code, check LSP diagnostics and fix errors before proce
 
 # Non-Negotiable Principles that must be followed in every code change
 
-## 1. Push "use client" to the leaves — Server Components fetch and render
+## 1. Components display and emit — shadcn/ui gives you the building blocks
 
-Keep Server Components at the top. Push "use client" as far down the tree as possible — ideally to the single element that actually needs interactivity. always prefer highly composable elements that can be constructed in the page level directly like how shadcn/ui components are designed. The point is to avoid making the entire page a Client Component when only a small part of it needs to be.
+shadcn/ui components (Button, Dialog, Badge, etc.) are already well-built display primitives. Your job in a feature component is to wire them to your data and forward the right callbacks — not to inline logic inside them.
 
-## 2. Server Components fetch, TanStack Query caches on the client, Zustand owns UI state
+Radix UI primitives (the foundation of shadcn) are designed to be controlled from outside. Lean into that: let Zustand own the open/closed state of a Dialog or Sheet, and let the component just reflect it.
 
-These three tools are not interchangeable — each owns a distinct layer, and the expensive mistake is blurring those lines.
+---
 
-- Server Components — data that doesn't need to be interactive or re-fetched after the initial render. Zero JS cost, runs at request time or build time.
-- TanStack Query — client-side server state: data fetched from the client
-- Zustand — pure UI state: which tab is selected, whether a modal is open, what's in the cart locally.
+## 2. SWR owns server state — Zustand owns UI state
 
-Putting server data into Zustand is the most common and costly version of this mistake. You end up owning the cache yourself — manually syncing, manually invalidating, manually handling loading states that TanStack Query gives you for free.
+The expensive mistake is copying SWR data into Zustand. You end up with two sources of truth that drift apart, and a pile of `useEffect`s trying to sync them.
 
-## 3. Use Server Actions for mutations, Route Handlers for external integrations
+SWR was built for server state: caching, deduplication, background revalidation, loading and error handling. Let it own all of that. Zustand handles what SWR cannot: selections, multi-step form progress, open panels, modal state.
 
-Next.js gives you two ways to run server-side logic: Server Actions and Route Handlers. They solve different problems and using the wrong one for the job adds unnecessary indirection.
+---
 
-- Server Actions — for mutations triggered by user interactions inside your app: form submissions, button clicks, anything a Client Component initiates. No HTTP layer to build or maintain.
-- Route Handlers — for things outside your React app: incoming webhooks, OAuth callbacks, third-party integrations, or when you genuinely need a public API endpoint.
+## 3. Compute derived values at read time — never store them
 
-## 4. Compute derived values — never store them
+Storing a derived value creates a sync obligation. Every time the source changes, the copy has to be updated. That obligation is where bugs live — stale totals, wrong counts, UI that reflects yesterday's data.
 
-Both Zustand selectors and TanStack Query's `select` option are built exactly for this.
+SWR doesn't have a built-in `select` option like TanStack Query. Transform server data directly at the call site instead of storing the transformed copy anywhere.
 
-## 5. Name Server Actions and store mutations after domain events
+---
 
-When an action is named `setOrderStatus`, callers have to decide what status to pass and understand the side effects — that knowledge leaks out of the action and scatters across the codebase. When it's named `approveOrder`, the logic for what "approving" means lives in one place.
+## 4. Name Zustand actions and SWR mutations after domain events
 
-## 6. Side effects belong in plain service functions
+When an action is named `setOrderStatus`, every caller has to know what status to pass and why — that decision leaks out everywhere. When it's named `approveOrder`, the logic for what "approving" means lives in one place.
 
-API calls, database queries, third-party SDK interactions — all of it goes into plain service files with no Next.js, React, or Zustand imports. Your Server Actions call these. TanStack Query calls these. Server Components call these. Nothing reaches past them.
+The same applies to `useSWRMutation` — the key and trigger name should describe what happened, not what HTTP method was used.
 
-## 7. Coordinate cross-domain logic explicitly in one place
+---
 
-When a user action touches multiple stores, invalidates multiple queries, or triggers multiple operations — that coordination belongs in one explicit function. Not scattered across `useEffect`s watching mutation state. Not buried in a store that secretly reaches into another.
+## 5. Fetcher functions are your service layer
 
-## 8. Use TypeScript to make illegal states unrepresentable
+SWR's `fetcher` argument is where your API logic lives — not inside components, not in Zustand actions. Extract all `fetch` calls into plain service files with no SWR, React, or Zustand imports. SWR calls these. Zustand actions call these. Components never reach past them.
 
-A discriminated union allows only the combinations that actually make sense, and TypeScript narrows automatically inside each branch.
+You can test `productService.fetchAll` without mounting a component or touching SWR. Switching from REST to GraphQL means touching only the service file — nothing else in your app changes.
 
-## 9. Wrap complex libraries and Next.js navigation APIs
+---
 
-If a library has its own data model, event system, and lifecycle — wrap it in one component. The wrapper converts app's plain data into what the library needs, and converts library events back into your app's actions. This also applies to Next.js's own navigation hooks: wrapping them means your components stay decoupled from routing internals.
+## 6. Coordinate cross-domain logic in one function — use SWR's `mutate` to close the loop
+
+When one user action touches multiple stores or triggers cache invalidation, that coordination belongs in one explicit function. Not scattered across `useEffect`s, not buried inside a Zustand action that secretly reaches into SWR's cache.
+
+After a mutation succeeds, `mutate` from SWR is how you tell the cache that specific data is now stale. That call belongs in the same function that triggered the mutation.
+
+---
+
+## 7. Use TypeScript to make illegal states unrepresentable
+
+Boolean flags for async state almost always permit combinations that shouldn't exist: `isLoading: true` and `isSuccess: true` at the same time, `data` being non-null when `isError` is true. SWR's own internals model their state correctly — apply the same discipline to your own Zustand stores.
+
+---
+
+## 8. Own your shadcn/ui components — extend them, don't patch them inline
+
+shadcn/ui copies component source into your `/components/ui/` directory. These files are yours. When you need a variant that doesn't exist, add it to the component itself using `cva` — the same system shadcn already uses. Don't reach in with ad-hoc `className` overrides spread across the codebase.
+
+Radix UI primitives follow the same rule: wrap them once for each domain use case so the Radix API never leaks into your feature components.
+
+---
+
+## 9. TanStack Router search params replace URL-driven Zustand state
+
+Zustand is the wrong place for state that belongs in the URL — filters, sort order, pagination, tab selection. This state needs to survive a page refresh, be shareable via link, and work with the browser back button. TanStack Router gives you typed, validated search params that do all of this automatically.
+
+The split is: Zustand for UI state no one needs to link to (which modal is open, hover states, multi-step form progress mid-completion). TanStack Router search params for state that represents a _view_ of the data someone might want to share or return to.
+
+---
 
 ## 10. Move in small working steps
 
-Every refactor step should leave the app in a working, shippable state. Every step is independently reviewable and deployable. When something breaks, you know exactly which step caused it.
+Large refactors get abandoned halfway, leaving two competing patterns and no clear path forward. Every step of a refactor should leave the app in a working, shippable state.
+
+Each step is independently shippable. When something breaks, you know exactly which step caused it and can revert just that step without undoing everything else.
