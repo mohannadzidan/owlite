@@ -3,11 +3,11 @@ import { getClientProfileId } from "@/lib/profile-id";
 import { profileService } from "@/services/profile.service";
 import useSWR from "swr";
 
-export function useContinueWatching() {
+export function useContinueWatching(initialData?: ContinueWatchingEntry[]) {
   const profileId = getClientProfileId();
   const key = profileId ? `profile/${profileId}/continue-watching` : null;
   const { data, mutate } = useSWR(key, () => profileService.getContinueWatching(profileId!), {
-    fallbackData: [],
+    fallbackData: initialData ?? [],
   });
 
   const saveContinueWatching = (entry: ContinueWatchingEntry) => {

@@ -1,5 +1,4 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import useSWR from "swr";
 import dayjs from "dayjs";
 import { tmdb } from "@/services/tmdb.service";
 import { Badge } from "@/components/ui/badge";
@@ -7,27 +6,25 @@ import Muted from "@/components/typography/muted";
 import Heading from "@/components/typography/heading";
 import PlayButton from "@/components/play-button";
 import { SubtitlesNavButton } from "@/components/subtitles-nav-button";
+import FullScreenSpinner from "@/components/fullscreen-spinner";
 
 export const Route = createFileRoute("/_maxi/media/movie/$id")({
+  loader: async ({ params: { id } }) => {
+    const numId = Number(id);
+    if (isNaN(numId)) throw notFound();
+    const details = await tmdb.movies.details(numId, ["credits"]);
+    if ("error" in details) throw notFound();
+    return details;
+  },
+  pendingComponent: FullScreenSpinner,
   component: MovieDetailPage,
 });
 
 const BACKDROP = "https://image.tmdb.org/t/p/w1280";
 const POSTER = "https://image.tmdb.org/t/p/w500";
 
-function LoadingSkeleton() {
-  return <div className="fixed inset-0 bg-black" />;
-}
-
 function MovieDetailPage() {
-  const { id } = Route.useParams();
-  const { data: details, isLoading } = useSWR(!isNaN(Number(id)) ? ["tmdb/movie", id] : null, () =>
-    tmdb.movies.details(Number(id), ["credits"]),
-  );
-
-  if (isNaN(Number(id))) throw notFound();
-  if (isLoading) return <LoadingSkeleton />;
-  if (!details || "error" in details) throw notFound();
+  const details = Route.useLoaderData();
 
   return (
     <main className="pt-16 p-8 flex flex-col h-screen">

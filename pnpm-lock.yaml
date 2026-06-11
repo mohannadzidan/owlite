@@ -105,6 +105,9 @@ importers:
       '@tanstack/router-plugin':
         specifier: ^1.132.0
         version: 1.168.18(@tanstack/react-router@1.170.15(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(vite@8.0.16(@types/node@22.19.20)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+      boring-avatars:
+        specifier: ^2.0.4
+        version: 2.0.4(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -223,6 +226,9 @@ importers:
       postcss:
         specifier: ^8.5.15
         version: 8.5.15
+      postcss-logical:
+        specifier: ^9.0.0
+        version: 9.0.0(postcss@8.5.15)
       tailwindcss:
         specifier: 3.3.5
         version: 3.3.5(ts-node@10.9.2(@swc/core@1.15.40)(@types/node@22.19.20)(typescript@6.0.3))
@@ -2750,6 +2756,12 @@ packages:
   bl@4.1.0:
     resolution: {integrity: sha512-1W07cM9gS6DcLperZfFSj+bWLtaPGSOHWhPiGzXmvVJbRLdG82sH/Kn8EtW1VqWVA54AKf2h5k5BbnIbwF3h6w==}
 
+  boring-avatars@2.0.4:
+    resolution: {integrity: sha512-xhZO/w/6aFmRfkaWohcl2NfyIy87gK5SBbys8kctZeTGF1Apjpv/10pfUuv+YEfVPkESU/h2Y6tt/Dwp+bIZPw==}
+    peerDependencies:
+      react: '>=18.0.0'
+      react-dom: '>=18.0.0'
+
   brace-expansion@2.1.1:
     resolution: {integrity: sha512-WR1cURNjuvBLMZBMbqM0UoE+WAfdUcEV1ccD8PVBVOI+Z3ND4+SZbN8RsfT2bMuG1qwz5RFvPukSZm5fF2D5eA==}
 
@@ -4018,6 +4030,12 @@ packages:
         optional: true
       ts-node:
         optional: true
+
+  postcss-logical@9.0.0:
+    resolution: {integrity: sha512-A4LNd9dk3q/juEUA9Gd8ALhBO3TeOeYurnyHLlf2aAToD94VHR8c5Uv7KNmf8YVRhTxvWsyug4c5fKtARzyIRQ==}
+    engines: {node: '>=20.19.0'}
+    peerDependencies:
+      postcss: ^8.4
 
   postcss-nested@6.2.0:
     resolution: {integrity: sha512-HQbt28KulC5AJzG+cZtj9kvKB93CFCdLvog1WFLf1D+xmMvPGlBstkpTEZfK5+AN9hfJocyBFCNiqyS48bpgzQ==}
@@ -7274,6 +7292,11 @@ snapshots:
       inherits: 2.0.4
       readable-stream: 3.6.2
 
+  boring-avatars@2.0.4(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
+    dependencies:
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+
   brace-expansion@2.1.1:
     dependencies:
       balanced-match: 1.0.2
@@ -8494,6 +8517,11 @@ snapshots:
     optionalDependencies:
       postcss: 8.5.15
       ts-node: 10.9.2(@swc/core@1.15.40)(@types/node@22.19.20)(typescript@6.0.3)
+
+  postcss-logical@9.0.0(postcss@8.5.15):
+    dependencies:
+      postcss: 8.5.15
+      postcss-value-parser: 4.2.0
 
   postcss-nested@6.2.0(postcss@8.5.15):
     dependencies:
