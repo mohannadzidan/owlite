@@ -156,6 +156,26 @@ class CursorManager {
       cursorService.tap(this.pos.x, this.pos.y);
     } else if (msg.type === "cursor_scroll") {
       cursorService.scroll(this.pos.x, this.pos.y, msg.dy);
+    } else if (msg.type === "cursor_drag_start") {
+      this.pos = { x: msg.x, y: msg.y };
+      this.bumpActive();
+      if (this.cursorEl) {
+        this.cursorEl.style.transform = `translate(calc(${msg.x}px - 50%), calc(${msg.y}px - 50%))`;
+      }
+      cursorService.dragStart(msg.x, msg.y);
+    } else if (msg.type === "cursor_drag_move") {
+      this.pos = { x: msg.x, y: msg.y };
+      this.bumpActive();
+      if (this.cursorEl) {
+        this.cursorEl.style.transform = `translate(calc(${msg.x}px - 50%), calc(${msg.y}px - 50%))`;
+      }
+      cursorService.dragMove(msg.x, msg.y);
+    } else if (msg.type === "cursor_drag_end") {
+      this.pos = { x: msg.x, y: msg.y };
+      if (this.cursorEl) {
+        this.cursorEl.style.transform = `translate(calc(${msg.x}px - 50%), calc(${msg.y}px - 50%))`;
+      }
+      cursorService.dragEnd(msg.x, msg.y);
     } else if (msg.type === "remote_action") {
       shortcutsStore.getState().triggerById(msg.shortcutId);
     } else if (msg.type === "remote_text") {
