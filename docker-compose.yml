@@ -11,6 +11,13 @@ services:
       dockerfile: apps/api/Dockerfile
     env_file:
       - apps/api/.env
+    environment:
+      TMDB_IMAGE_CACHE_PATH: /var/cache/tmdb-images
+      TMDB_API_CACHE_PATH: /var/cache/tmdb-api/cache.sqlite
+    volumes:
+      - tmdb-images:/var/cache/tmdb-images:rw
+      - tmdb-api-cache:/var/cache/tmdb-api:rw
+      - owlite-data:/app/apps/api/data:rw
     restart: unless-stopped
 
   proxy:
@@ -19,11 +26,25 @@ services:
       dockerfile: docker/Dockerfile.lighttpd
     ports:
       - "80:80"
+    volumes:
+      - tmdb-images:/var/cache/tmdb-images:ro
     depends_on:
       - web
       - api
     restart: unless-stopped
 
+  tmdb-cache-evict:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.tmdb-cache-evict
+    environment:
+      TMDB_IMAGE_CACHE_PATH: /var/cache/tmdb-images
+      TMDB_IMAGE_MAX_AGE_DAYS: "7"
+    volumes:
+      - tmdb-images:/var/cache/tmdb-images:rw
+    restart: unless-stopped
+
 volumes:
-  # Persists the SQLite database across container restarts
   owlite-data:
+  tmdb-images:
+  tmdb-api-cache:

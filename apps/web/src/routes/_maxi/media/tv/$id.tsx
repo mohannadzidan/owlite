@@ -1,6 +1,6 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import dayjs from "dayjs";
-import { tmdb } from "@/services/tmdb.service";
+import { tmdb, tmdbImageUrl } from "@/services/tmdb.service";
 import { Badge } from "@/components/ui/badge";
 import EpisodesList from "./-episodes-list";
 import Muted from "@/components/typography/muted";
@@ -24,8 +24,6 @@ export const Route = createFileRoute("/_maxi/media/tv/$id")({
   component: TvDetailPage,
 });
 
-const BACKDROP = "https://image.tmdb.org/t/p/w1280";
-
 function TvDetailPage() {
   const details = Route.useLoaderData();
   const { id } = Route.useParams();
@@ -36,7 +34,7 @@ function TvDetailPage() {
       {details?.backdrop_path && (
         <div className="fixed top-0 left-0 -z-10 w-full h-full">
           <img
-            src={`${BACKDROP}${details.backdrop_path}`}
+            src={tmdbImageUrl("backdrop", "w1280", details.backdrop_path)}
             alt={details.name}
             className="w-full h-full object-cover object-top animate-in fade-in zoom-in-125 duration-1000"
           />

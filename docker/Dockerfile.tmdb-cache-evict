@@ -1,0 +1,8 @@
+FROM alpine:3.20
+
+COPY docker/tmdb-cache-evict.sh /usr/local/bin/tmdb-cache-evict
+RUN chmod +x /usr/local/bin/tmdb-cache-evict \
+ && echo "0 3 * * * tmdb-cache-evict >> /var/log/tmdb-cache-evict.log 2>&1" \
+      | crontab -
+
+CMD ["crond", "-f", "-l", "6"]
