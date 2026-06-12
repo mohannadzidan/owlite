@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type ComponentProps } from "react";
+import { useCallback, useEffect, useRef, useState, type ComponentProps } from "react";
 import { Play, Pause, RotateCcw, RotateCw, SkipForward, Subtitles, Settings } from "lucide-react";
-import { usePlayerStore } from "./player-store";
+import { usePlayerStore, usePlayerStoreApi } from "./player-store";
 import { SubtitlesPanel } from "./subtitles-panel";
 import type { SubtitleTrack } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,8 @@ function PlayerControls({ className, children, style, ...props }: ComponentProps
   const [controlsVisible, setControlsVisible] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const virtualCursorActive = useRemoteControlStore((s) => s.cursorActive);
+  const isVisible = controlsVisible || virtualCursorActive;
+
   // Show controls on any keydown or mouse move
   useEffect(() => {
     const showControls = () => {
@@ -44,7 +46,7 @@ function PlayerControls({ className, children, style, ...props }: ComponentProps
     <div
       className={cn(
         "player-controls-overlay z-10 transition-opacity duration-300 opacity-100 cursor-default",
-        !virtualCursorActive && !controlsVisible && "opacity-0 pointer-events-none cursor-none",
+        !isVisible && "opacity-0 pointer-events-none cursor-none",
         className,
       )}
       style={{
@@ -59,7 +61,7 @@ function PlayerControls({ className, children, style, ...props }: ComponentProps
       }}
       {...props}
     >
-      {children}
+      {isVisible && children}
     </div>
   );
 }
@@ -214,41 +216,56 @@ PlayerControls.ProgressBar = function ProgressBar({
   onSeek,
   ...props
 }: ComponentProps<"div"> & { onSeek?: (timeSeconds: number) => void }) {
-  const currentTime = usePlayerStore((s) => s.currentTime);
-  const duration = usePlayerStore((s) => s.duration);
-  const buffered = usePlayerStore((s) => s.buffered);
+  const playerApi = usePlayerStoreApi();
   const barRef = useRef<HTMLDivElement>(null);
+  const playedRef = useRef<HTMLDivElement>(null);
+  const bufferedRef = useRef<HTMLDivElement>(null);
+  const thumbRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
-  const [dragRatio, setDragRatio] = useState<number | null>(null);
-
-  // Use refs so document-level handlers always see latest values without re-subscribing
-  const durationRef = useRef(duration);
-  durationRef.current = duration;
+  const durationRef = useRef(0);
   const seekRef = useRef(onSeek);
+
   useEffect(() => {
     seekRef.current = onSeek;
   }, [onSeek]);
 
-  const getRatioFromX = (clientX: number): number | null => {
+  const applyRatio = useCallback((ratio: number) => {
+    const pct = `${ratio * 100}%`;
+    if (playedRef.current) playedRef.current.style.width = pct;
+    if (thumbRef.current) thumbRef.current.style.left = pct;
+  }, []);
+
+  // Update DOM directly — bypasses React re-renders entirely for every timeupdate tick
+  useEffect(() => {
+    return playerApi.subscribe((state) => {
+      durationRef.current = state.duration;
+      if (bufferedRef.current) bufferedRef.current.style.width = `${state.buffered * 100}%`;
+      if (!isDragging.current && state.duration > 0) {
+        applyRatio(state.currentTime / state.duration);
+        barRef.current?.setAttribute("aria-valuenow", String(Math.round(state.currentTime)));
+        barRef.current?.setAttribute("aria-valuemax", String(Math.round(state.duration)));
+      }
+    });
+  }, [playerApi, applyRatio]);
+
+  const getRatioFromX = useCallback((clientX: number): number | null => {
     const bar = barRef.current;
     if (!bar || !durationRef.current) return null;
     const rect = bar.getBoundingClientRect();
     return Math.max(0, Math.min((clientX - rect.left) / rect.width, 1));
-  };
+  }, []);
 
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
       if (!isDragging.current) return;
       const ratio = getRatioFromX(e.clientX);
       if (ratio !== null) {
-        setDragRatio(ratio);
+        applyRatio(ratio);
         seekRef.current?.(ratio * durationRef.current);
       }
     };
     const onMouseUp = () => {
-      if (!isDragging.current) return;
       isDragging.current = false;
-      setDragRatio(null);
     };
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
@@ -256,44 +273,42 @@ PlayerControls.ProgressBar = function ProgressBar({
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
     };
-  }, []);
+  }, [getRatioFromX, applyRatio]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     isDragging.current = true;
     const ratio = getRatioFromX(e.clientX);
     if (ratio !== null) {
-      setDragRatio(ratio);
-      onSeek?.(ratio * duration);
+      applyRatio(ratio);
+      seekRef.current?.(ratio * durationRef.current);
     }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     const ratio = getRatioFromX(e.touches[0].clientX);
     if (ratio !== null) {
-      setDragRatio(ratio);
-      onSeek?.(ratio * duration);
+      applyRatio(ratio);
+      seekRef.current?.(ratio * durationRef.current);
     }
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     const ratio = getRatioFromX(e.changedTouches[0].clientX);
-    if (ratio !== null) onSeek?.(ratio * duration);
-    setDragRatio(null);
+    if (ratio !== null) {
+      applyRatio(ratio);
+      seekRef.current?.(ratio * durationRef.current);
+    }
   };
-
-  const displayPct =
-    dragRatio !== null ? dragRatio * 100 : duration > 0 ? (currentTime / duration) * 100 : 0;
-  const buffPct = buffered * 100;
 
   return (
     <div
       ref={barRef}
       role="slider"
       aria-label="Seek"
-      aria-valuenow={Math.round(currentTime)}
+      aria-valuenow={0}
       aria-valuemin={0}
-      aria-valuemax={Math.round(duration)}
+      aria-valuemax={0}
       tabIndex={0}
       className={cn("player-progress-bar relative flex items-center h-5 cursor-pointer", className)}
       onMouseDown={handleMouseDown}
@@ -305,22 +320,21 @@ PlayerControls.ProgressBar = function ProgressBar({
       <div className="absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-muted" />
       {/* Buffered */}
       <div
+        ref={bufferedRef}
         className="absolute top-1/2 left-0 h-1.5 -translate-y-1/2 rounded-full bg-muted-foreground/40"
-        style={{ width: `${buffPct}%` }}
+        style={{ width: "0%" }}
       />
       {/* Played */}
       <div
+        ref={playedRef}
         className="absolute top-1/2 left-0 h-1.5 -translate-y-1/2 rounded-full bg-primary"
-        style={{ width: `${displayPct}%` }}
+        style={{ width: "0%" }}
       />
       {/* Thumb */}
       <div
+        ref={thumbRef}
         className="absolute z-10 rounded-full bg-primary shadow-sm pointer-events-none w-4 h-4"
-        style={{
-          top: "50%",
-          left: `${displayPct}%`,
-          transform: "translate(-50%, -50%)",
-        }}
+        style={{ top: "50%", left: "0%", transform: "translate(-50%, -50%)" }}
       />
     </div>
   );
@@ -329,12 +343,16 @@ PlayerControls.ProgressBar = function ProgressBar({
 // ─── CurrentTime ─────────────────────────────────────────────────────────────
 
 PlayerControls.CurrentTime = function CurrentTime({ className, ...props }: ComponentProps<"div">) {
-  const currentTime = usePlayerStore((s) => s.currentTime);
-  return (
-    <div className={className} {...props}>
-      {formatTime(currentTime)}
-    </div>
+  const playerApi = usePlayerStoreApi();
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(
+    () =>
+      playerApi.subscribe(
+        (s) => void (ref.current && (ref.current.textContent = formatTime(s.currentTime))),
+      ),
+    [playerApi],
   );
+  return <div ref={ref} className={className} {...props} />;
 };
 
 // ─── RemainingTime ────────────────────────────────────────────────────────────
@@ -343,25 +361,35 @@ PlayerControls.RemainingTime = function RemainingTime({
   className,
   ...props
 }: ComponentProps<"div">) {
-  const currentTime = usePlayerStore((s) => s.currentTime);
-  const duration = usePlayerStore((s) => s.duration);
-  const remaining = Math.max(0, duration - currentTime);
-  return (
-    <div className={className} {...props}>
-      {formatTime(remaining)}
-    </div>
+  const playerApi = usePlayerStoreApi();
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(
+    () =>
+      playerApi.subscribe(
+        (s) =>
+          void (
+            ref.current &&
+            (ref.current.textContent = formatTime(Math.max(0, s.duration - s.currentTime)))
+          ),
+      ),
+    [playerApi],
   );
+  return <div ref={ref} className={className} {...props} />;
 };
 
 // ─── Duration ─────────────────────────────────────────────────────────────────
 
 PlayerControls.Duration = function Duration({ className, ...props }: ComponentProps<"div">) {
-  const duration = usePlayerStore((s) => s.duration);
-  return (
-    <div className={className} {...props}>
-      {formatTime(duration)}
-    </div>
+  const playerApi = usePlayerStoreApi();
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(
+    () =>
+      playerApi.subscribe(
+        (s) => void (ref.current && (ref.current.textContent = formatTime(s.duration))),
+      ),
+    [playerApi],
   );
+  return <div ref={ref} className={className} {...props} />;
 };
 
 // ─── Subtitles ────────────────────────────────────────────────────────────────

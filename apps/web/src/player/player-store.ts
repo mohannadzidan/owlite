@@ -64,6 +64,7 @@ export interface PlayerState {
   setSubtitles: (tracks: TextTrackInfo[]) => void;
   setQualityLevels: (levels: QualityLevel[]) => void;
   setActiveQualityLevel: (level: number) => void;
+  setTimeUpdate: (currentTime: number, buffered: number) => void;
   setExternalSubtitleUrl: (url: string | null) => void;
   setActiveExternalTrackId: (id: string | null) => void;
   setSubtitleDelay: (delay: number) => void;
@@ -109,6 +110,7 @@ export function createPlayerStore() {
     setCurrentTime: (currentTime) => set({ currentTime }),
     setDuration: (duration) => set({ duration }),
     setBuffered: (buffered) => set({ buffered }),
+    setTimeUpdate: (currentTime, buffered) => set({ currentTime, buffered }),
     setVolume: (volume) => set({ volume }),
     setMuted: (muted) => set({ muted }),
     setSubtitles: (subtitles) => set({ subtitles }),

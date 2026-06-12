@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { usePlayerStore } from "./player-store";
+import { useEffect, useRef, useState } from "react";
+import { usePlayerStore, usePlayerStoreApi } from "./player-store";
 
 interface SubtitleCue {
   start: number;
@@ -35,35 +35,49 @@ function parseVtt(content: string): SubtitleCue[] {
 }
 
 export function SubtitleOverlay() {
-  const currentTime = usePlayerStore((s) => s.currentTime);
+  const playerApi = usePlayerStoreApi();
   const externalSubtitleUrl = usePlayerStore((s) => s.externalSubtitleUrl);
-  const delay = usePlayerStore((s) => s.subtitleDelay);
   const fontSize = usePlayerStore((s) => s.subtitleFontSize);
   const verticalPosition = usePlayerStore((s) => s.subtitleVerticalPosition);
 
-  const [cues, setCues] = useState<SubtitleCue[]>([]);
+  const [activeCue, setActiveCue] = useState<SubtitleCue | null>(null);
+  const cuesRef = useRef<SubtitleCue[]>([]);
 
   useEffect(() => {
     if (!externalSubtitleUrl) {
-      setCues([]);
+      cuesRef.current = [];
+      setActiveCue(null);
       return;
     }
     let cancelled = false;
     fetch(externalSubtitleUrl)
       .then((r) => r.text())
       .then((text) => {
-        if (!cancelled) setCues(parseVtt(text));
+        if (!cancelled) cuesRef.current = parseVtt(text);
       })
       .catch(() => {
-        if (!cancelled) setCues([]);
+        if (!cancelled) cuesRef.current = [];
       });
     return () => {
       cancelled = true;
     };
   }, [externalSubtitleUrl]);
 
-  const adjustedTime = currentTime - delay;
-  const activeCue = cues.find((c) => adjustedTime >= c.start && adjustedTime <= c.end);
+  // Subscribe to the raw store to detect cue changes without causing per-tick re-renders.
+  // React state is only updated when the active cue actually changes (every few seconds),
+  // instead of on every timeupdate (~4Hz).
+  useEffect(() => {
+    let prevCue: SubtitleCue | null = null;
+    return playerApi.subscribe((state) => {
+      const adjustedTime = state.currentTime - state.subtitleDelay;
+      const next =
+        cuesRef.current.find((c) => adjustedTime >= c.start && adjustedTime <= c.end) ?? null;
+      if (next !== prevCue) {
+        prevCue = next;
+        setActiveCue(next);
+      }
+    });
+  }, [playerApi]);
 
   if (!activeCue) return null;
 

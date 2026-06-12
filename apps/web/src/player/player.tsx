@@ -114,8 +114,7 @@ export function Player({
       };
       const onDurationChange = () => s.setDuration(video.duration || 0);
       const onTimeUpdate = () => {
-        s.setCurrentTime(video.currentTime);
-        s.setBuffered(getBufferedEnd(video));
+        s.setTimeUpdate(video.currentTime, getBufferedEnd(video));
       };
       const onPlay = () => s.setPlaybackState("playing");
       const onPause = () => s.setPlaybackState("paused");
