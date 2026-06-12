@@ -33,7 +33,7 @@ export default function FullScreenSpinner({
   return (
     <div
       className={cn(
-        "m-auto flex items-center justify-center animate-in fade-in duration-1000",
+        "m-auto flex items-center justify-center animate-in fade-in duration-1000 h-screen w-screen",
         className,
       )}
       {...props}
