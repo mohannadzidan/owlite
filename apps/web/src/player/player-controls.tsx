@@ -5,6 +5,7 @@ import { SubtitlesPanel } from "./subtitles-panel";
 import type { SubtitleTrack } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useRemoteControlStore } from "@/lib/remote-control-store";
+import { usePlayerUIStore } from "./player-ui-store";
 
 const HIDE_DELAY_MS = 1400;
 
@@ -26,6 +27,11 @@ function PlayerControls({ className, children, style, ...props }: ComponentProps
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const virtualCursorActive = useRemoteControlStore((s) => s.cursorActive);
   const isVisible = controlsVisible || virtualCursorActive;
+  const setControlsVisibleInStore = usePlayerUIStore((s) => s.setControlsVisible);
+
+  useEffect(() => {
+    setControlsVisibleInStore(isVisible);
+  }, [isVisible, setControlsVisibleInStore]);
 
   // Show controls on any keydown or mouse move
   useEffect(() => {

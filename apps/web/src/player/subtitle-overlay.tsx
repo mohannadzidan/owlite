@@ -99,16 +99,17 @@ export function SubtitleOverlay() {
     >
       <p
         style={{
-          backgroundColor: "rgba(0,0,0,0.15)",
+          backgroundColor: "rgba(0,0,0,0.1)",
           color: "white",
           padding: "3px 12px",
-          borderRadius: 4,
+          borderRadius: 8,
           fontSize: `${(fontSize / 100) * 2}vw`,
           textAlign: "center",
           maxWidth: "80%",
           whiteSpace: "pre-line",
           lineHeight: 1.45,
         }}
+        className=" [text-shadow:_0_1px_0_#000,_1px_0_0_#000,_0_-1px_0_#000,_-1px_0_0_#000]"
       >
         {activeCue.text}
       </p>

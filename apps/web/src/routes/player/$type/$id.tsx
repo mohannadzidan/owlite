@@ -10,6 +10,8 @@ import { usePlayerStore, usePlayerStoreApi } from "@/player/player-store";
 import type { SubtitleTrack } from "@/lib/types";
 import { shortcutsScopes, useShortcut, useShortcutScope } from "@/lib/shortcuts";
 import { PlayerControls } from "@/player/player-controls";
+import { PlayerToastLayer } from "@/player/player-toast";
+import { usePlayerUIStore } from "@/player/player-ui-store";
 import { profileService } from "@/services/profile.service";
 import { getClientProfileId } from "@/lib/profile-id";
 import { subtitles as subtitlesService } from "@/services/api.service";
@@ -183,6 +185,7 @@ function FavoriteSubtitleApplier({
   const tracks: SubtitleTrack[] = data && !("error" in data) ? (data.tracks ?? []) : [];
 
   const appliedRef = useRef(false);
+  const showToast = usePlayerUIStore((s) => s.showToast);
 
   useEffect(() => {
     appliedRef.current = false;
@@ -208,6 +211,7 @@ function FavoriteSubtitleApplier({
       void profileService.saveSubtitles(profileId, tmdbId, favTrack.id, season, episode);
     setExternalSubtitleUrl(apiUrl(favTrack.download_url));
     setActiveExternalTrackId(favTrack.id);
+    showToast("subtitles", "Subtitles loaded");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tracks, activeExternalTrackId, tracks.length]);
 
@@ -251,6 +255,7 @@ function PlayerUI({
   preferences,
 }: PlayerUIProps) {
   useShortcutScope(shortcutsScopes.player);
+  const playerApi = usePlayerStoreApi();
   const togglePlay = usePlayerStore((s) => s.togglePlay);
   const skip = usePlayerStore((s) => s.skip);
   const seek = usePlayerStore((s) => s.seek);
@@ -262,6 +267,18 @@ function PlayerUI({
   const setSubtitleVerticalPosition = usePlayerStore((s) => s.setSubtitleVerticalPosition);
   const subtitleDelay = usePlayerStore((s) => s.subtitleDelay);
   const subtitleFontSize = usePlayerStore((s) => s.subtitleFontSize);
+  const playbackState = usePlayerStore((s) => s.playbackState);
+  const showToast = usePlayerUIStore((s) => s.showToast);
+  const dismissToast = usePlayerUIStore((s) => s.dismissToast);
+
+  useEffect(() => {
+    if (playbackState === "loading") {
+      showToast("buffering", "Buffering…", true);
+    } else {
+      const { toast } = usePlayerUIStore.getState();
+      if (toast?.iconType === "buffering") dismissToast();
+    }
+  }, [playbackState, showToast, dismissToast]);
 
   const handleQualityChange = useCallback(
     (level: number) => {
@@ -274,8 +291,9 @@ function PlayerUI({
     (track: SubtitleTrack) => {
       setExternalSubtitleUrl(apiUrl(track.download_url));
       setActiveExternalTrackId(track.id);
+      showToast("subtitles", "Subtitles loaded");
     },
-    [setActiveExternalTrackId, setExternalSubtitleUrl],
+    [setActiveExternalTrackId, setExternalSubtitleUrl, showToast],
   );
 
   const handleClearTrack = useCallback(() => {
@@ -285,46 +303,63 @@ function PlayerUI({
 
   useShortcut(shortcutsScopes.player, "player.togglePlay", (e) => {
     e.preventDefault();
+    const { playbackState: current } = playerApi.getState();
     togglePlay();
+    showToast(
+      current === "playing" ? "pause" : "play",
+      current === "playing" ? "Paused" : "Playing",
+    );
   });
 
   useShortcut(shortcutsScopes.player, "player.skipBackward", (e) => {
     e.preventDefault();
     skip(-10);
+    showToast("skipBackward", "−10s");
   });
 
   useShortcut(shortcutsScopes.player, "player.skipForward", (e) => {
     e.preventDefault();
     skip(10);
+    showToast("skipForward", "+10s");
   });
 
   useShortcut(shortcutsScopes.player, "player.nextEpisode", (e) => {
     e.preventDefault();
     onNextEpisode?.();
+    showToast("nextEpisode", "Next episode");
   });
 
   useShortcut(shortcutsScopes.player, "player.subtitlesDelayIncrease", (e) => {
     e.preventDefault();
-    setSubtitleDelay(Math.round((subtitleDelay + 0.5) * 10) / 10);
+    const next = Math.round((subtitleDelay + 0.5) * 10) / 10;
+    setSubtitleDelay(next);
+    showToast("subtitleDelay", `${next > 0 ? "+" : ""}${next.toFixed(1)}s`);
   });
 
   useShortcut(shortcutsScopes.player, "player.subtitlesDelayDecrease", (e) => {
     e.preventDefault();
-    setSubtitleDelay(Math.round((subtitleDelay - 0.5) * 10) / 10);
+    const next = Math.round((subtitleDelay - 0.5) * 10) / 10;
+    setSubtitleDelay(next);
+    showToast("subtitleDelay", `${next > 0 ? "+" : ""}${next.toFixed(1)}s`);
   });
 
   useShortcut(shortcutsScopes.player, "player.subtitlesFontDecrease", (e) => {
     e.preventDefault();
-    setSubtitleFontSize(Math.max(25, subtitleFontSize - 5));
+    const next = Math.max(25, subtitleFontSize - 5);
+    setSubtitleFontSize(next);
+    showToast("subtitleFont", `${next}%`);
   });
 
   useShortcut(shortcutsScopes.player, "player.subtitlesFontIncrease", (e) => {
     e.preventDefault();
-    setSubtitleFontSize(Math.min(200, subtitleFontSize + 5));
+    const next = Math.min(200, subtitleFontSize + 5);
+    setSubtitleFontSize(next);
+    showToast("subtitleFont", `${next}%`);
   });
 
   return (
     <>
+      <PlayerToastLayer />
       <PrefsInitializer
         subtitleFontSize={preferences.subtitleFontSize}
         subtitleVerticalPosition={preferences.subtitleVerticalPosition}
