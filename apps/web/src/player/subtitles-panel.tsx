@@ -153,11 +153,21 @@ export function SubtitlesPanel({
         setDownloadingId(null);
         return;
       }
-      onSelectTrack?.(track);
+      let resolvedTrack = track;
+      if (track.provider === "open_subtitles") {
+        const data = (await res.json()) as { cacheKey: string; localId: number | null };
+        resolvedTrack = {
+          ...track,
+          id: data.localId != null ? `local-${data.localId}` : track.id,
+          download_url: `/subtitles/stream?cache_key=${encodeURIComponent(data.cacheKey)}`,
+          provider: "local",
+        };
+      }
+      onSelectTrack?.(resolvedTrack);
       void patchPreferences({ subtitleLanguage: track.language });
       const profileId = getClientProfileId();
       if (tmdbId && profileId) {
-        void profileService.saveSubtitles(profileId, tmdbId, track.id, season, episode);
+        void profileService.saveSubtitles(profileId, tmdbId, resolvedTrack.id, season, episode);
       }
     } catch {
       setDownloadError("An error occurred while downloading subtitles.");

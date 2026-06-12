@@ -229,6 +229,7 @@ export async function searchSubtitles(params: SubtitleSearchParams): Promise<{
         for (const item of data.data ?? []) {
           const fileId = item.attributes.files[0]?.file_id;
           if (!fileId) continue;
+          if (fs.existsSync(path.join(CACHE_DIR, `${fileId}.ref`))) continue;
           const lang = item.attributes.language;
           const trackContextParams = new URLSearchParams(contextParams);
           trackContextParams.set("language", lang);
@@ -250,6 +251,10 @@ export async function searchSubtitles(params: SubtitleSearchParams): Promise<{
   return { tracks: [...localTracks, ...osTracks] };
 }
 
+function sanitizeFilename(name: string): string {
+  return name.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_").slice(0, 200);
+}
+
 export async function downloadSubtitle(
   fileId: number,
   context: {
@@ -258,14 +263,23 @@ export async function downloadSubtitle(
     episode: number | null;
     language: string | null;
   },
-): Promise<{ cacheKey: string }> {
-  const cacheFile = `${fileId}.vtt`;
-  const filePath = path.join(CACHE_DIR, cacheFile);
+): Promise<{ cacheKey: string; localId: number | null }> {
+  fs.mkdirSync(CACHE_DIR, { recursive: true });
 
-  if (!filePath.startsWith(CACHE_DIR)) throw Object.assign(new Error("Forbidden"), { status: 403 });
-
-  if (fs.existsSync(filePath)) {
-    return { cacheKey: cacheFile };
+  // .ref sidecar maps fileId → real cache filename so we can check existence
+  // without consuming an API download credit on repeat requests
+  const refPath = path.join(CACHE_DIR, `${fileId}.ref`);
+  if (fs.existsSync(refPath)) {
+    const cacheFile = fs.readFileSync(refPath, "utf-8").trim();
+    const filePath = path.join(CACHE_DIR, cacheFile);
+    if (fs.existsSync(filePath)) {
+      const existing = db
+        .select({ id: subtitles.id })
+        .from(subtitles)
+        .where(eq(subtitles.file, filePath))
+        .get();
+      return { cacheKey: cacheFile, localId: existing?.id ?? null };
+    }
   }
 
   if (!process.env.OPENSUBTITLES_API_KEY) {
@@ -301,6 +315,13 @@ export async function downloadSubtitle(
     });
   }
 
+  const origName = dlData.file_name ?? `${fileId}.srt`;
+  const baseName = sanitizeFilename(path.basename(origName, path.extname(origName)));
+  const cacheFile = `${baseName}.vtt`;
+  const filePath = path.join(CACHE_DIR, cacheFile);
+
+  if (!filePath.startsWith(CACHE_DIR)) throw Object.assign(new Error("Forbidden"), { status: 403 });
+
   const subRes = await fetch(dlData.link);
   if (!subRes.ok) {
     throw Object.assign(new Error("Failed to fetch subtitle file"), {
@@ -314,14 +335,15 @@ export async function downloadSubtitle(
     content = srtToVtt(content);
   }
 
-  fs.mkdirSync(CACHE_DIR, { recursive: true });
   fs.writeFileSync(filePath, content, "utf-8");
+  fs.writeFileSync(refPath, cacheFile, "utf-8");
 
+  let localId: number | null = null;
   if (context.tmdbId && context.language) {
-    const fileName = dlData.file_name ?? `${fileId}.srt`;
-    const parsed = parseSubtitleFilename(fileName);
+    const parsed = parseSubtitleFilename(origName);
     try {
-      db.insert(subtitles)
+      const inserted = db
+        .insert(subtitles)
         .values({
           tmdbId: context.tmdbId,
           file: filePath,
@@ -336,13 +358,15 @@ export async function downloadSubtitle(
           createdAt: new Date(),
         })
         .onConflictDoNothing()
-        .run();
+        .returning({ id: subtitles.id })
+        .get();
+      localId = inserted?.id ?? null;
     } catch {
       // Non-fatal — subtitle is still served even if DB insert fails
     }
   }
 
-  return { cacheKey: cacheFile };
+  return { cacheKey: cacheFile, localId };
 }
 
 export function resolveSubtitleCachePath(cacheKey: string): string {
