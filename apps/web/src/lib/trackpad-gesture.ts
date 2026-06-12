@@ -3,6 +3,8 @@ import { connectionManager } from "@/lib/connection-manager";
 const TAP_MAX_DURATION_MS = 250;
 const TAP_MAX_MOVEMENT_PX = 12;
 const SENSITIVITY = 2;
+const DOUBLE_TAP_MAX_GAP_MS = 300;
+const DOUBLE_TAP_MAX_DISTANCE_PX = 20;
 
 interface PointerState {
   x: number;
@@ -32,6 +34,10 @@ export function createTrackpadGesture(
   let { pairId, tvW, tvH } = opts;
   let pendingPos: { x: number; y: number } | null = null;
   let rafId = 0;
+  let lastTapVirtualX = 0;
+  let lastTapVirtualY = 0;
+  let isDragging = false;
+  let pendingTapTimer: ReturnType<typeof setTimeout> | null = null;
 
   function flushPosition() {
     rafId = 0;
@@ -49,8 +55,40 @@ export function createTrackpadGesture(
     if (!rafId) rafId = requestAnimationFrame(flushPosition);
   }
 
+  function flushPendingTap() {
+    if (pendingTapTimer === null) return;
+    clearTimeout(pendingTapTimer);
+    pendingTapTimer = null;
+    connectionManager.sendRemoteMessage(pairId, { type: "cursor_tap" });
+  }
+
+  function cancelPendingTap() {
+    if (pendingTapTimer === null) return;
+    clearTimeout(pendingTapTimer);
+    pendingTapTimer = null;
+  }
+
   function onPointerDown(e: PointerEvent) {
     el.setPointerCapture(e.pointerId);
+
+    if (pendingTapTimer !== null) {
+      const distFromLastTap = Math.sqrt(
+        (virtualPos.x - lastTapVirtualX) ** 2 + (virtualPos.y - lastTapVirtualY) ** 2,
+      );
+
+      if (pointers.size === 0 && distFromLastTap < DOUBLE_TAP_MAX_DISTANCE_PX) {
+        cancelPendingTap();
+        isDragging = true;
+        connectionManager.sendRemoteMessage(pairId, {
+          type: "cursor_drag_start",
+          x: virtualPos.x,
+          y: virtualPos.y,
+        });
+      } else {
+        flushPendingTap();
+      }
+    }
+
     pointers.set(e.pointerId, {
       x: e.clientX,
       y: e.clientY,
@@ -71,7 +109,16 @@ export function createTrackpadGesture(
     if (pointers.size === 1) {
       virtualPos.x = Math.max(0, Math.min(tvW, virtualPos.x + dx * SENSITIVITY));
       virtualPos.y = Math.max(0, Math.min(tvH, virtualPos.y + dy * SENSITIVITY));
-      scheduleFlush(virtualPos.x, virtualPos.y);
+
+      if (isDragging) {
+        connectionManager.sendRemoteMessage(pairId, {
+          type: "cursor_drag_move",
+          x: virtualPos.x,
+          y: virtualPos.y,
+        });
+      } else {
+        scheduleFlush(virtualPos.x, virtualPos.y);
+      }
     } else if (pointers.size === 2 && dy !== 0) {
       connectionManager.sendRemoteMessage(pairId, { type: "cursor_scroll", dy });
     }
@@ -81,6 +128,16 @@ export function createTrackpadGesture(
     const info = pointers.get(e.pointerId);
     pointers.delete(e.pointerId);
     if (!info) return;
+
+    if (isDragging && pointers.size === 0) {
+      isDragging = false;
+      connectionManager.sendRemoteMessage(pairId, {
+        type: "cursor_drag_end",
+        x: virtualPos.x,
+        y: virtualPos.y,
+      });
+      return;
+    }
 
     const duration = Date.now() - info.startTime;
     const movedX = Math.abs(e.clientX - info.startX);
@@ -92,12 +149,25 @@ export function createTrackpadGesture(
       movedX < TAP_MAX_MOVEMENT_PX &&
       movedY < TAP_MAX_MOVEMENT_PX
     ) {
-      connectionManager.sendRemoteMessage(pairId, { type: "cursor_tap" });
+      lastTapVirtualX = virtualPos.x;
+      lastTapVirtualY = virtualPos.y;
+      pendingTapTimer = setTimeout(() => {
+        pendingTapTimer = null;
+        connectionManager.sendRemoteMessage(pairId, { type: "cursor_tap" });
+      }, DOUBLE_TAP_MAX_GAP_MS);
     }
   }
 
   function onPointerCancel(e: PointerEvent) {
     pointers.delete(e.pointerId);
+    if (isDragging && pointers.size === 0) {
+      isDragging = false;
+      connectionManager.sendRemoteMessage(pairId, {
+        type: "cursor_drag_end",
+        x: virtualPos.x,
+        y: virtualPos.y,
+      });
+    }
   }
 
   el.addEventListener("pointerdown", onPointerDown);
@@ -121,6 +191,7 @@ export function createTrackpadGesture(
       el.removeEventListener("pointerup", onPointerUp);
       el.removeEventListener("pointercancel", onPointerCancel);
       if (rafId) cancelAnimationFrame(rafId);
+      cancelPendingTap();
     },
   };
 }
