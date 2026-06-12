@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import SelectSourceDialog from "@/player/select-source-page";
 import useSWR from "swr";
 import { sources } from "@/services/api.service";
@@ -16,11 +16,19 @@ import { profileService } from "@/services/profile.service";
 import { getClientProfileId } from "@/lib/profile-id";
 import { subtitles as subtitlesService } from "@/services/api.service";
 import { url as apiUrl } from "@/services/api-client";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, VideoOff } from "lucide-react";
 import FullScreenButton from "@/components/fullscreen-button";
 import { tmdb } from "@/services/tmdb.service";
 import { DEFAULT_PREFERENCES } from "@/lib/profile-types";
 import type { PreferencesRecord } from "@/lib/profile-types";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/player/$type/$id")({
   validateSearch: (search) => ({
@@ -67,8 +75,35 @@ export const Route = createFileRoute("/player/$type/$id")({
     return { movieDetails, tvDetails, playData, seasonData, preferences };
   },
   pendingComponent: FullScreenSpinner,
+  errorComponent: PlayerErrorPage,
   component: PlayerPage,
 });
+
+function PlayerErrorPage() {
+  const router = useRouter();
+  return (
+    <div className="w-screen h-screen bg-black flex items-center justify-center">
+      <Empty className="border-none max-w-md text-white">
+        <EmptyHeader>
+          <EmptyMedia>
+            <VideoOff size={48} className="text-muted-foreground" />
+          </EmptyMedia>
+          <EmptyTitle className="text-white text-lg">Not Available</EmptyTitle>
+          <EmptyDescription className="text-muted-foreground">
+            This title could not be loaded. The source may be unavailable or the video URL could not
+            be resolved.
+          </EmptyDescription>
+        </EmptyHeader>
+        <div className="flex gap-3 mt-2">
+          <Button variant="outline" onClick={() => router.history.back()}>
+            <ArrowLeft size={16} />
+            Go Back
+          </Button>
+        </div>
+      </Empty>
+    </div>
+  );
+}
 
 interface PlayerUIProps {
   title: string;
