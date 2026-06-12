@@ -163,9 +163,10 @@ export function createPlayerStore() {
     },
     setQualityLevel: (level) => {
       const { hlsInstance } = get();
-      if (hlsInstance && hlsInstance.levels.length - 1 > level) {
-        hlsInstance.currentLevel = hlsInstance.levels.length - 1;
-      } else if (hlsInstance) hlsInstance.currentLevel = level;
+      if (hlsInstance) {
+        const maxLevel = hlsInstance.levels.length - 1;
+        hlsInstance.currentLevel = level === -1 ? -1 : Math.min(level, maxLevel);
+      }
       const profileId = getClientProfileId();
       if (profileId) void profileService.patchPreferences(profileId, { qualityLevel: level });
       set({ activeQualityLevel: level });

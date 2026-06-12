@@ -17,7 +17,8 @@ import { url as apiUrl } from "@/services/api-client";
 import { ArrowLeft } from "lucide-react";
 import FullScreenButton from "@/components/fullscreen-button";
 import { tmdb } from "@/services/tmdb.service";
-import { useProfilePreferences } from "@/hooks/use-profile-preferences";
+import { DEFAULT_PREFERENCES } from "@/lib/profile-types";
+import type { PreferencesRecord } from "@/lib/profile-types";
 
 export const Route = createFileRoute("/player/$type/$id")({
   validateSearch: (search) => ({
@@ -56,7 +57,12 @@ export const Route = createFileRoute("/player/$type/$id")({
         : Promise.resolve(null),
     ]);
 
-    return { movieDetails, tvDetails, playData, seasonData };
+    const profileId = getClientProfileId();
+    const preferences = profileId
+      ? await profileService.getPreferences(profileId).catch(() => DEFAULT_PREFERENCES)
+      : DEFAULT_PREFERENCES;
+
+    return { movieDetails, tvDetails, playData, seasonData, preferences };
   },
   pendingComponent: FullScreenSpinner,
   component: PlayerPage,
@@ -73,6 +79,7 @@ interface PlayerUIProps {
   episodeTitle?: string;
   fileName?: string;
   onNextEpisode?: () => void;
+  preferences: PreferencesRecord;
 }
 
 function ProgressSaver({
@@ -155,17 +162,18 @@ function FavoriteSubtitleApplier({
   imdbId,
   season,
   episode,
+  subtitleLanguage,
 }: {
   tmdbId: number;
   imdbId?: string;
   season?: number;
   episode?: number;
+  subtitleLanguage: string | null;
 }) {
   const profileId = getClientProfileId();
   const activeExternalTrackId = usePlayerStore((s) => s.activeExternalTrackId);
   const setExternalSubtitleUrl = usePlayerStore((s) => s.setExternalSubtitleUrl);
   const setActiveExternalTrackId = usePlayerStore((s) => s.setActiveExternalTrackId);
-  const { preferences } = useProfilePreferences();
 
   const { data } = useSWR(
     imdbId || tmdbId ? ["subtitles", imdbId, tmdbId, season, episode] : null,
@@ -181,7 +189,7 @@ function FavoriteSubtitleApplier({
   }, [imdbId, tmdbId, season, episode]);
 
   useEffect(() => {
-    const preferred = preferences.subtitleLanguage;
+    const preferred = subtitleLanguage;
     const favTrack =
       tracks.filter((t) => t.isFavorite && t.provider === "local" && t.language === preferred)[0] ??
       null;
@@ -206,21 +214,25 @@ function FavoriteSubtitleApplier({
   return null;
 }
 
-function PrefsInitializer() {
-  const { preferences } = useProfilePreferences();
+function PrefsInitializer({
+  subtitleFontSize,
+  subtitleVerticalPosition,
+  qualityLevel,
+}: {
+  subtitleFontSize: number;
+  subtitleVerticalPosition: number;
+  qualityLevel: number;
+}) {
   const setSubtitleFontSize = usePlayerStore((s) => s.setSubtitleFontSize);
   const setSubtitleVerticalPosition = usePlayerStore((s) => s.setSubtitleVerticalPosition);
   const setQualityLevel = usePlayerStore((s) => s.setQualityLevel);
-  const initialized = useRef(false);
 
   useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
-    setSubtitleFontSize(preferences.subtitleFontSize);
-    setSubtitleVerticalPosition(preferences.subtitleVerticalPosition);
-    setQualityLevel(preferences.qualityLevel);
+    setSubtitleFontSize(subtitleFontSize);
+    setSubtitleVerticalPosition(subtitleVerticalPosition);
+    setQualityLevel(qualityLevel);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preferences]);
+  }, []);
 
   return null;
 }
@@ -236,6 +248,7 @@ function PlayerUI({
   onNextEpisode,
   episodeTitle,
   fileName,
+  preferences,
 }: PlayerUIProps) {
   useShortcutScope(shortcutsScopes.player);
   const togglePlay = usePlayerStore((s) => s.togglePlay);
@@ -312,9 +325,19 @@ function PlayerUI({
 
   return (
     <>
-      <PrefsInitializer />
+      <PrefsInitializer
+        subtitleFontSize={preferences.subtitleFontSize}
+        subtitleVerticalPosition={preferences.subtitleVerticalPosition}
+        qualityLevel={preferences.qualityLevel}
+      />
       <ProgressSaver tmdbId={tmdbId} season={season} episode={episode} />
-      <FavoriteSubtitleApplier tmdbId={tmdbId} imdbId={imdbId} season={season} episode={episode} />
+      <FavoriteSubtitleApplier
+        tmdbId={tmdbId}
+        imdbId={imdbId}
+        season={season}
+        episode={episode}
+        subtitleLanguage={preferences.subtitleLanguage}
+      />
       <PlayerControls>
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/60 pointer-events-none" />
 
@@ -434,12 +457,16 @@ function PlayerPage() {
     );
   }
 
-  const { movieDetails, tvDetails, playData, seasonData } = loaderData;
+  const { movieDetails, tvDetails, playData, seasonData, preferences } = loaderData;
 
-  const streamUrl = new URL(
-    playData.type === "hls" ? playData.master_manifest_url : playData.url,
-    import.meta.env.VITE_API_URL,
-  ).toString();
+  const ogStreamUrl = playData.type === "hls" ? playData.master_manifest_url : playData.url;
+  const streamUrl =
+    import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.trim().length > 0
+      ? new URL(
+          playData.type === "hls" ? playData.master_manifest_url : playData.url,
+          import.meta.env.VITE_API_URL,
+        ).toString()
+      : ogStreamUrl;
 
   const title = type === "movie" ? (movieDetails as any).title : (tvDetails as any).name;
   const tmdbId = type === "movie" ? (movieDetails as any).id : (tvDetails as any).id;
@@ -520,6 +547,7 @@ function PlayerPage() {
         nextEpisode={nextEpisode}
         onNextEpisode={nextEpisodeHandler}
         fileName={playData.type === "hls" ? playData.fileName : undefined}
+        preferences={preferences}
       />
     </Player>
   );
