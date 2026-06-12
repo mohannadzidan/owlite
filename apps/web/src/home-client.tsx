@@ -25,8 +25,6 @@ import { useContinueWatching } from "@/hooks/use-continue-watching";
 import { useProgress } from "@/hooks/use-progress";
 import type { ContinueWatchingEntry } from "@/lib/profile-types";
 
-export const TMDB_IMAGE = "https://image.tmdb.org/t/p/w342";
-
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {

@@ -1,42 +1,27 @@
-import { createHash } from "crypto";
-import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "fs";
+import Keyv from "keyv";
+import KeyvSqlite from "@keyv/sqlite";
+import { mkdirSync } from "fs";
 import path from "path";
 
-const CACHE_DIR = path.join(process.cwd(), "cache", "tmdb");
+const CACHE_DB_PATH =
+  process.env.TMDB_API_CACHE_PATH || path.join(process.cwd(), "cache", "tmdb-api", "cache.sqlite");
+
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;
 
-mkdirSync(CACHE_DIR, { recursive: true });
+mkdirSync(path.dirname(CACHE_DB_PATH), { recursive: true });
 
-type CacheEntry = {
-  expiresAt: number;
+const cache = new Keyv<StoredResponse>({
+  store: new KeyvSqlite(`sqlite://${CACHE_DB_PATH}`),
+  ttl: DEFAULT_TTL_MS,
+});
+
+type StoredResponse = {
   status: number;
   headers: Record<string, string>;
   body: string;
 };
 
-function cacheKey(url: string): string {
-  return createHash("sha256").update(url).digest("hex");
-}
-
-function cachePath(key: string): string {
-  return path.join(CACHE_DIR, `${key}.json`);
-}
-
-function readEntry(key: string): CacheEntry | null {
-  try {
-    return JSON.parse(readFileSync(cachePath(key), "utf8")) as CacheEntry;
-  } catch {
-    return null;
-  }
-}
-
-function writeEntry(key: string, entry: CacheEntry): void {
-  try {
-    writeFileSync(cachePath(key), JSON.stringify(entry), "utf8");
-  } catch {
-    // Cache write failure is non-fatal
-  }
-}
+export type CachedResponse = StoredResponse & { fromCache: boolean };
 
 function ttlFromHeaders(headers: Headers): number | null {
   const cc = headers.get("cache-control");
@@ -53,74 +38,32 @@ function ttlFromHeaders(headers: Headers): number | null {
   return DEFAULT_TTL_MS;
 }
 
-export type CachedResponse = {
-  status: number;
-  headers: Record<string, string>;
-  body: string;
-};
-
 export async function cachedFetch(url: string, authHeader: string): Promise<CachedResponse> {
-  const key = cacheKey(url);
-  const entry = readEntry(key);
-  if (entry && entry.expiresAt > Date.now()) {
-    return { status: entry.status, headers: entry.headers, body: entry.body };
-  }
+  const cached = await cache.get(url);
+  if (cached) return { ...cached, fromCache: true };
 
   const res = await fetch(url, {
     headers: { Authorization: authHeader, Accept: "application/json" },
   });
 
   const body = await res.text();
+  const headersMap: Record<string, string> = {};
+  res.headers.forEach((value, name) => {
+    headersMap[name] = value;
+  });
+
+  const stored: StoredResponse = { status: res.status, headers: headersMap, body };
 
   if (res.ok) {
-    const headersToCache: Record<string, string> = {};
-    res.headers.forEach((value, name) => {
-      headersToCache[name] = value;
-    });
     const ttl = ttlFromHeaders(res.headers);
     if (ttl !== null) {
-      writeEntry(key, {
-        expiresAt: Date.now() + ttl,
-        status: res.status,
-        headers: headersToCache,
-        body,
+      await cache.set(url, stored, ttl).catch(() => {
+        // Cache write failure is non-fatal
       });
     }
   }
 
-  const headers: Record<string, string> = {};
-  res.headers.forEach((value, name) => {
-    headers[name] = value;
-  });
-  return { status: res.status, headers, body };
-}
-
-function cleanupExpiredEntries(): void {
-  let removed = 0;
-  try {
-    const files = readdirSync(CACHE_DIR).filter((f) => f.endsWith(".json"));
-    for (const file of files) {
-      const filePath = path.join(CACHE_DIR, file);
-      try {
-        const entry = JSON.parse(readFileSync(filePath, "utf8")) as CacheEntry;
-        if (entry.expiresAt <= Date.now()) {
-          rmSync(filePath);
-          removed++;
-        }
-      } catch {
-        // Unreadable/corrupt file — delete it
-        try { rmSync(filePath); removed++; } catch { /* ignore */ }
-      }
-    }
-  } catch {
-    // CACHE_DIR not readable — nothing to clean
-  }
-  if (removed > 0) console.log(`[tmdb-cache] Removed ${removed} expired entries`);
-}
-
-export function scheduleTmdbCacheCleanup(): void {
-  cleanupExpiredEntries();
-  setInterval(cleanupExpiredEntries, 5 * 60 * 60 * 1000).unref();
+  return { ...stored, fromCache: false };
 }
 
 export async function cachedTmdbGet<T>(url: string, authHeader: string): Promise<T> {

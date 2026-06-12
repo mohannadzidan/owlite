@@ -1,6 +1,6 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import dayjs from "dayjs";
-import { tmdb } from "@/services/tmdb.service";
+import { tmdb, tmdbImageUrl } from "@/services/tmdb.service";
 import { Badge } from "@/components/ui/badge";
 import Muted from "@/components/typography/muted";
 import Heading from "@/components/typography/heading";
@@ -20,9 +20,6 @@ export const Route = createFileRoute("/_maxi/media/movie/$id")({
   component: MovieDetailPage,
 });
 
-const BACKDROP = "https://image.tmdb.org/t/p/w1280";
-const POSTER = "https://image.tmdb.org/t/p/w500";
-
 function MovieDetailPage() {
   const details = Route.useLoaderData();
 
@@ -31,7 +28,7 @@ function MovieDetailPage() {
       {details.backdrop_path && (
         <div className="fixed top-0 left-0 -z-10 w-full h-full">
           <img
-            src={`${BACKDROP}${details.backdrop_path}`}
+            src={tmdbImageUrl("backdrop", "w1280", details.backdrop_path)}
             alt={details.title}
             className="w-full h-full object-cover object-top animate-in fade-in zoom-in-125 duration-1000"
           />
@@ -91,7 +88,7 @@ function MovieDetailPage() {
         {details.poster_path && (
           <div className="relative h-80 w-56 shrink-0 overflow-hidden rounded-xl shadow-2xl ring-1 ring-white/10">
             <img
-              src={`${POSTER}${details.poster_path}`}
+              src={tmdbImageUrl("poster", "w500", details.poster_path)}
               alt={details.title}
               className="absolute inset-0 w-full h-full object-cover animate-in fade-in duration-700"
             />

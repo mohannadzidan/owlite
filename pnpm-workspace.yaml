@@ -11,3 +11,4 @@ onlyBuiltDependencies:
   - "@swc/core"
   - better-sqlite3
   - fastify-socket.io
+  - sqlite3

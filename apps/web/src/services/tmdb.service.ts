@@ -89,6 +89,12 @@ export const tmdb = new TMDB("", {
 export const tmdbImageUrl = <T extends "backdrop" | "logo" | "poster" | "profile" | "still">(
   type: T,
   size: (typeof config.images)[`${T}_sizes`][number],
-  path: string,
-) =>
-  `${config.images.secure_base_url}${config.images[`${type}_sizes`].find((a) => a === size) || config.images[`${type}_sizes`][0]}${path}`;
+  filePath: string,
+) => {
+  const resolvedSize =
+    config.images[`${type}_sizes`].find((a) => a === size) ?? config.images[`${type}_sizes`][0];
+  // Route through our proxy so lighttpd can cache images on disk.
+  // In production (same-origin via lighttpd) this is a relative URL.
+  // In development VITE_API_URL points directly to the Fastify server.
+  return `${import.meta.env.VITE_API_URL}/images/tmdb/${resolvedSize}${filePath}`;
+};

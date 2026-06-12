@@ -5,6 +5,7 @@ import mediaPlugin from "./media";
 import mappingsPlugin from "./mappings";
 import observabilityPlugin from "./observability";
 import tmdbPlugin from "./tmdb";
+import tmdbImagesPlugin from "./tmdb-images";
 
 export async function registerRoutes(fastify: FastifyInstance) {
   const opts = { prefix: "/api/v1" };
@@ -14,4 +15,5 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(mappingsPlugin, opts);
   await fastify.register(observabilityPlugin, opts);
   await fastify.register(tmdbPlugin, opts);
+  await fastify.register(tmdbImagesPlugin);
 }
